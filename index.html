@@ -743,7 +743,7 @@ body {
 /* Trivia game */
 .trivia-btn {
   position: fixed;
-  top: 110px;
+  top: 220px;
   right: 16px;
   z-index: 1100;
   width: 56px;
@@ -2100,7 +2100,7 @@ function tellNorwegianJoke() {
   
   const emoji = document.createElement('div');
   emoji.style.cssText = 'font-size:40px;margin-bottom:16px;';
-  emoji.textContent = '🇳🇴';
+  emoji.innerHTML = '&#x1F1F3;&#x1F1F4;';
   
   const setup = document.createElement('div');
   setup.style.cssText = 'font-size:17px;color:#fff;line-height:1.5;margin-bottom:20px;';
@@ -2157,7 +2157,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (trivHdr) {
     const jokeLink = document.createElement('div');
     jokeLink.style.cssText = 'font-size:14px;color:#ffb74d;cursor:pointer;margin-top:4px;';
-    jokeLink.textContent = '🇳🇴 Tell me a Norwegian joke';
+    jokeLink.innerHTML = '&#x1F1F3;&#x1F1F4; Tell me a Norwegian joke';
     jokeLink.addEventListener('click', tellNorwegianJoke);
     trivHdr.appendChild(jokeLink);
   }
@@ -2165,8 +2165,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Also accessible from welcome screen - add after person grid
 const jokeFloater = document.createElement('div');
-jokeFloater.style.cssText = 'position:fixed;top:110px;left:16px;z-index:1100;padding:12px 20px;border-radius:24px;background:rgba(22,33,62,0.9);border:1px solid rgba(255,255,255,0.1);color:#ffb74d;font-size:14px;cursor:pointer;display:none;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);';
-jokeFloater.textContent = '🇳🇴 Norwegian joke';
+jokeFloater.style.cssText = 'position:fixed;top:220px;left:16px;z-index:1100;padding:12px 20px;border-radius:24px;background:rgba(22,33,62,0.9);border:1px solid rgba(255,255,255,0.1);color:#ffb74d;font-size:14px;cursor:pointer;display:none;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);';
+jokeFloater.innerHTML = '<span style="font-size:18px;">&#x1F1F3;&#x1F1F4;</span> Norwegian joke';
 jokeFloater.addEventListener('click', tellNorwegianJoke);
 document.body.appendChild(jokeFloater);
 
