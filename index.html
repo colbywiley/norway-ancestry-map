@@ -743,7 +743,7 @@ body {
 /* Trivia game */
 .trivia-btn {
   position: fixed;
-  bottom: 290px;
+  top: 110px;
   right: 16px;
   z-index: 1100;
   width: 56px;
@@ -1742,7 +1742,7 @@ function generateQuestions() {
     genRelationshipQuestion,
     genFamilyLineQuestion,
     genOddOneOutQuestion,
-    genEventTypeQuestion,
+    genBirthPlaceQuestion,
     genOldestQuestion
   ];
   
@@ -1780,7 +1780,7 @@ function genWhereQuestion(ancestors) {
   const options = shuffle([correctPlace, ...wrongPlaces]);
   return {
     category: 'Places',
-    question: 'Where did ' + pick.name + '\'s ' + evt.eventType.toLowerCase() + ' take place?',
+    question: 'Where did ' + pick.name + ' (your ' + pick.rel.toLowerCase() + ')\'s ' + evt.eventType.toLowerCase() + ' take place?',
     options: options,
     correct: options.indexOf(correctPlace),
     feedback: pick.name + ' (your ' + pick.rel.toLowerCase() + ') — ' + evt.eventType.toLowerCase() + ' in ' + correctPlace + (evt.date ? ' (' + evt.date + ')' : '') + '.'
@@ -1805,7 +1805,7 @@ function genWhenQuestion(ancestors) {
   const options = shuffle([String(correctYear), ...wrongYears.slice(0,3).map(String)]);
   return {
     category: 'Dates',
-    question: 'In what year was ' + pick.name + '\'s ' + evt.eventType.toLowerCase() + '?',
+    question: 'In what year was ' + pick.name + ' (your ' + pick.rel.toLowerCase() + ')\'s ' + evt.eventType.toLowerCase() + '?',
     options: options,
     correct: options.indexOf(String(correctYear)),
     feedback: pick.name + ' — ' + evt.eventType.toLowerCase() + ' in ' + correctYear + ' at ' + evt.place.split(',')[0].trim() + '.'
@@ -1872,73 +1872,51 @@ function genFamilyLineQuestion(ancestors) {
   };
 }
 
-function genOddOneOutQuestion(ancestors) {
-  const evtsMap = {};
-  ancestors.forEach(a => { evtsMap[a.name] = getAncestorEvents(a.name); });
-  const withPlace = ancestors.filter(a => evtsMap[a.name].length > 0);
-  if (withPlace.length < 3) return null;
-  
-  // Find a place with multiple ancestors
-  const placeAncestors = {};
-  withPlace.forEach(a => {
-    evtsMap[a.name].forEach(e => {
-      const region = e.place.split(',').slice(0, 2).join(',').trim();
-      if (!placeAncestors[region]) placeAncestors[region] = new Set();
-      placeAncestors[region].add(a.name);
-    });
+function genMarriageQuestion(ancestors) {
+  const withMarriage = ancestors.filter(a => {
+    const evts = getAncestorEvents(a.name);
+    return evts.some(e => e.eventType === 'Marriage');
   });
+  if (withMarriage.length < 1) return null;
+  const pick = withMarriage[Math.floor(Math.random() * withMarriage.length)];
+  const evt = getAncestorEvents(pick.name).find(e => e.eventType === 'Marriage');
+  const correctPlace = evt.place.split(',')[0].trim();
   
-  const goodRegions = Object.entries(placeAncestors).filter(([r, s]) => s.size >= 3);
-  if (goodRegions.length < 1) return null;
-  const [region, names] = goodRegions[Math.floor(Math.random() * goodRegions.length)];
-  const regionNames = [...names];
+  const allPlaces = [...new Set(ALL_EVENTS.filter(e => e.eventType === 'Marriage').map(e => e.place.split(',')[0].trim()))].filter(p => p !== correctPlace && p.length > 2);
+  if (allPlaces.length < 3) return null;
+  const wrongPlaces = shuffle(allPlaces).slice(0, 3);
   
-  // Find someone NOT in this region
-  const outsiders = withPlace.filter(a => !names.has(a.name));
-  if (outsiders.length < 1) return null;
-  const oddOne = outsiders[Math.floor(Math.random() * outsiders.length)];
-  
-  const insiders = shuffle(regionNames).slice(0, 3);
-  const options = shuffle([oddOne.name, ...insiders]);
-  const regionShort = region.split(',')[0].trim();
+  const options = shuffle([correctPlace, ...wrongPlaces]);
   return {
-    category: 'Odd One Out',
-    question: 'Which of these ancestors did NOT have events in the ' + regionShort + ' area?',
+    category: 'Weddings',
+    question: 'Where did ' + pick.name + ' (your ' + pick.rel.toLowerCase() + ') get married?',
     options: options,
-    correct: options.indexOf(oddOne.name),
-    feedback: oddOne.name + ' had events elsewhere, while the others had events in ' + regionShort + '.'
+    correct: options.indexOf(correctPlace),
+    feedback: pick.name + ' was married in ' + correctPlace + (evt.date ? ' in ' + evt.date : '') + '.'
   };
 }
 
-function genEventTypeQuestion(ancestors) {
-  const withEvents = ancestors.filter(a => getAncestorEvents(a.name).length > 0);
-  if (withEvents.length < 1) return null;
-  const pick = withEvents[Math.floor(Math.random() * withEvents.length)];
-  const evts = getAncestorEvents(pick.name);
-  const types = [...new Set(evts.map(e => e.eventType))];
-  if (types.length < 1) return null;
+function genBirthPlaceQuestion(ancestors) {
+  const withBirth = ancestors.filter(a => {
+    const evts = getAncestorEvents(a.name);
+    return evts.some(e => e.eventType === 'Birth' && e.place);
+  });
+  if (withBirth.length < 1) return null;
+  const pick = withBirth[Math.floor(Math.random() * withBirth.length)];
+  const evt = getAncestorEvents(pick.name).find(e => e.eventType === 'Birth');
+  const correctPlace = evt.place.split(',')[0].trim();
   
-  const allTypes = ['Birth', 'Death', 'Marriage', 'Baptism', 'Census', 'Burial', 'Confirmation', 'Residence'];
-  const notTypes = allTypes.filter(t => !types.includes(t));
-  if (notTypes.length < 1) return null;
-  const wrongAnswer = notTypes[Math.floor(Math.random() * notTypes.length)];
+  const allPlaces = [...new Set(ALL_EVENTS.filter(e => e.eventType === 'Birth').map(e => e.place.split(',')[0].trim()))].filter(p => p !== correctPlace && p.length > 2);
+  if (allPlaces.length < 3) return null;
+  const wrongPlaces = shuffle(allPlaces).slice(0, 3);
   
-  const rightAnswers = shuffle(types).slice(0, 3);
-  if (rightAnswers.length < 3) {
-    while (rightAnswers.length < 3 && notTypes.length > 1) {
-      const extra = notTypes.pop();
-      if (extra !== wrongAnswer) rightAnswers.push(extra);
-    }
-  }
-  if (rightAnswers.length < 3) return null;
-  
-  const options = shuffle([wrongAnswer, ...rightAnswers.slice(0,3)]);
+  const options = shuffle([correctPlace, ...wrongPlaces]);
   return {
-    category: 'Events',
-    question: 'Which type of event do we NOT have recorded for ' + pick.name + '?',
+    category: 'Birthplaces',
+    question: 'Where was ' + pick.name + ' (your ' + pick.rel.toLowerCase() + ') born?',
     options: options,
-    correct: options.indexOf(wrongAnswer),
-    feedback: 'We have ' + types.join(', ').toLowerCase() + ' records for ' + pick.name + ' (your ' + pick.rel.toLowerCase() + ').'
+    correct: options.indexOf(correctPlace),
+    feedback: pick.name + ' was born in ' + correctPlace + (evt.date ? ' in ' + evt.date : '') + '.'
   };
 }
 
@@ -2187,7 +2165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Also accessible from welcome screen - add after person grid
 const jokeFloater = document.createElement('div');
-jokeFloater.style.cssText = 'position:fixed;bottom:290px;left:16px;z-index:1100;padding:12px 20px;border-radius:24px;background:rgba(22,33,62,0.9);border:1px solid rgba(255,255,255,0.1);color:#ffb74d;font-size:14px;cursor:pointer;display:none;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);';
+jokeFloater.style.cssText = 'position:fixed;top:110px;left:16px;z-index:1100;padding:12px 20px;border-radius:24px;background:rgba(22,33,62,0.9);border:1px solid rgba(255,255,255,0.1);color:#ffb74d;font-size:14px;cursor:pointer;display:none;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);';
 jokeFloater.textContent = '🇳🇴 Norwegian joke';
 jokeFloater.addEventListener('click', tellNorwegianJoke);
 document.body.appendChild(jokeFloater);
