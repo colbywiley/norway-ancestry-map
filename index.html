@@ -984,8 +984,8 @@ body {
     <div class="stats-row" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <span class="stat">Showing <strong id="visibleCount">0</strong> of <strong id="totalCount">0</strong> events</span>
       <div style="display:flex;gap:8px;" id="funButtons">
-        <button id="triviaInlineBtn" style="display:none;padding:6px 14px;border-radius:20px;border:1px solid #7e57c2;background:#7e57c222;color:#7e57c2;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🧩 Trivia</button>
-        <button id="jokeInlineBtn" style="display:none;padding:6px 14px;border-radius:20px;border:1px solid #ffb74d;background:#ffb74d22;color:#ffb74d;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">😂 Joke</button>
+        <button id="triviaInlineBtn" onclick="startTrivia();document.getElementById('triviaPanel').classList.add('open');" style="display:none;padding:6px 14px;border-radius:20px;border:1px solid #7e57c2;background:#7e57c222;color:#7e57c2;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🧩 Trivia</button>
+        <button id="jokeInlineBtn" onclick="tellNorwegianJoke();" style="display:none;padding:6px 14px;border-radius:20px;border:1px solid #ffb74d;background:#ffb74d22;color:#ffb74d;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">😂 Joke</button>
       </div>
     </div>
   </div>
@@ -1656,10 +1656,7 @@ selectViewer = function(key) {
   document.getElementById('jokeInlineBtn').style.display = '';
 };
 
-document.getElementById('triviaInlineBtn').addEventListener('click', () => {
-  startTrivia();
-  triviaPanel.classList.add('open');
-});
+// trivia click handled via inline onclick
 
 triviaClose.addEventListener('click', () => {
   triviaPanel.classList.remove('open');
@@ -2148,7 +2145,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Also accessible from welcome screen - add after person grid
-document.getElementById('jokeInlineBtn').addEventListener('click', tellNorwegianJoke);
+// joke click handled via inline onclick
 
 // Show joke button after viewer selected
 // joke button shown via inline panel button
