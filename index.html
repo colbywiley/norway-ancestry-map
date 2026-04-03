@@ -582,7 +582,11 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
   text-align: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .welcome-screen.hidden { display: none; }
@@ -734,6 +738,7 @@ body {
   padding-left: 4px;
   opacity: 0.5;
 }
+
 </style>
 </head>
 <body>
@@ -1424,6 +1429,8 @@ function toggleLineage(btn, viewerKey, personName) {
   btn.insertAdjacentHTML('afterend', chainHtml);
   btn.textContent = '🔗 Hide connection';
 }
-</script>
+
+
+
 </body>
 </html>
