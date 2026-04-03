@@ -1052,8 +1052,11 @@ function getFilteredEvents() {
   });
 }
 
+const markersByKey = {};
+
 function updateMarkers() {
   clusterGroup.clearLayers();
+  Object.keys(markersByKey).forEach(k => delete markersByKey[k]);
   const filtered = getFilteredEvents();
   const groups = groupByLocation(filtered);
   
@@ -1062,6 +1065,7 @@ function updateMarkers() {
     const marker = L.marker([e.lat, e.lng], { icon: createMarkerIcon(e) });
     marker.bindPopup(createPopupContent(events), { maxWidth: 280, maxHeight: 360 });
     clusterGroup.addLayer(marker);
+    markersByKey[key] = marker;
   }
   
   document.getElementById('visibleCount').textContent = filtered.length;
@@ -1178,10 +1182,17 @@ searchInput.addEventListener('input', () => {
 searchResults.addEventListener('click', (e) => {
   const item = e.target.closest('.search-result-item');
   if (!item) return;
-  map.flyTo([parseFloat(item.dataset.lat), parseFloat(item.dataset.lng)], 13, { duration: 1 });
+  const lat = parseFloat(item.dataset.lat);
+  const lng = parseFloat(item.dataset.lng);
+  const key = Math.round(lat * 200) + ',' + Math.round(lng * 200);
   searchInput.value = item.dataset.name;
   searchResults.classList.remove('active');
   searchInput.blur();
+  map.flyTo([lat, lng], 15, { duration: 1 });
+  map.once('moveend', () => {
+    const marker = markersByKey[key];
+    if (marker) clusterGroup.zoomToShowLayer(marker, () => marker.openPopup());
+  });
 });
 
 document.addEventListener('click', (e) => {
