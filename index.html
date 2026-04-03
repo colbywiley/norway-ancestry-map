@@ -741,27 +741,7 @@ body {
 
 
 /* Trivia game */
-.trivia-btn {
-  position: fixed;
-  top: 220px;
-  right: 16px;
-  z-index: 1100;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #7e57c2;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(126,87,194,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  transition: transform 0.2s;
-}
-.trivia-btn:active { transform: scale(0.92); }
-.trivia-btn.hidden { display: none; }
+.trivia-btn { display: none !important; }
 
 .trivia-panel {
   position: fixed;
@@ -996,6 +976,8 @@ body {
     <div class="filter-section">
       <div class="family-filters">
         <button class="family-btn active" id="accomToggle" style="border-color:#ffd54f;background:#ffd54f22;color:#ffd54f;">🏠 Accommodations</button>
+        <button class="family-btn" id="triviaInlineBtn" style="border-color:#7e57c2;background:#7e57c222;color:#7e57c2;display:none;">🧩 Trivia</button>
+        <button class="family-btn" id="jokeInlineBtn" style="border-color:#ffb74d;background:#ffb74d22;color:#ffb74d;display:none;">🇳🇴 Joke</button>
       </div>
     </div>
     </div>
@@ -1667,7 +1649,8 @@ const TRIVIA_COUNT = 10;
 const _origSV = selectViewer;
 selectViewer = function(key) {
   _origSV(key);
-  triviaBtn.classList.remove('hidden');
+  document.getElementById('triviaInlineBtn').style.display = '';
+  document.getElementById('jokeInlineBtn').style.display = '';
 };
 
 triviaBtn.addEventListener('click', () => {
@@ -1678,7 +1661,8 @@ triviaBtn.addEventListener('click', () => {
 
 triviaClose.addEventListener('click', () => {
   triviaPanel.classList.remove('open');
-  triviaBtn.classList.remove('hidden');
+  document.getElementById('triviaInlineBtn').style.display = '';
+  document.getElementById('jokeInlineBtn').style.display = '';
 });
 
 triviaNext.addEventListener('click', () => {
@@ -2164,18 +2148,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Also accessible from welcome screen - add after person grid
-const jokeFloater = document.createElement('div');
-jokeFloater.style.cssText = 'position:fixed;top:220px;left:16px;z-index:1100;padding:12px 20px;border-radius:24px;background:rgba(22,33,62,0.9);border:1px solid rgba(255,255,255,0.1);color:#ffb74d;font-size:14px;cursor:pointer;display:none;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);';
-jokeFloater.innerHTML = '<span style="font-size:18px;">&#x1F1F3;&#x1F1F4;</span> Norwegian joke';
-jokeFloater.addEventListener('click', tellNorwegianJoke);
-document.body.appendChild(jokeFloater);
+document.getElementById('jokeInlineBtn').addEventListener('click', tellNorwegianJoke);
 
 // Show joke button after viewer selected
-const _origSV2 = selectViewer;
-selectViewer = function(key) {
-  _origSV2(key);
-  jokeFloater.style.display = 'block';
-};
+// joke button shown via inline panel button
 
 </script>
 
