@@ -739,6 +739,205 @@ body {
   opacity: 0.5;
 }
 
+
+/* Trivia game */
+.trivia-btn {
+  position: fixed;
+  bottom: max(90px, calc(env(safe-area-inset-bottom) + 90px));
+  right: 16px;
+  z-index: 1100;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #7e57c2;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(126,87,194,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  transition: transform 0.2s;
+}
+.trivia-btn:active { transform: scale(0.92); }
+.trivia-btn.hidden { display: none; }
+
+.trivia-panel {
+  position: fixed;
+  bottom: 0; left: 0; right: 0; top: 0;
+  z-index: 2500;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.trivia-panel.open { transform: translateY(0); }
+
+.trivia-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.trivia-header-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+.trivia-score {
+  font-size: 15px;
+  color: #7e57c2;
+  font-weight: 600;
+}
+.trivia-close {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: none;
+  color: var(--text);
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trivia-body {
+  flex: 1;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.trivia-category {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.trivia-question {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 28px;
+  line-height: 1.4;
+  max-width: 500px;
+}
+
+.trivia-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.trivia-option {
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 2px solid rgba(255,255,255,0.08);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+.trivia-option:active { transform: scale(0.98); }
+.trivia-option.correct {
+  border-color: #66bb6a;
+  background: rgba(102,187,106,0.15);
+  color: #66bb6a;
+}
+.trivia-option.wrong {
+  border-color: #ef5350;
+  background: rgba(239,83,80,0.15);
+  color: #ef5350;
+}
+.trivia-option.reveal {
+  border-color: #66bb6a;
+  opacity: 0.6;
+}
+.trivia-option.disabled {
+  pointer-events: none;
+}
+
+.trivia-feedback {
+  margin-top: 20px;
+  font-size: 16px;
+  text-align: center;
+  line-height: 1.5;
+  color: var(--text-dim);
+  max-width: 400px;
+  min-height: 48px;
+}
+.trivia-feedback strong {
+  color: #fff;
+}
+
+.trivia-next {
+  margin-top: 24px;
+  padding: 14px 32px;
+  border-radius: 24px;
+  background: #7e57c2;
+  color: #fff;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+  display: none;
+}
+.trivia-next:active { transform: scale(0.95); }
+.trivia-next.visible { display: block; }
+
+.trivia-progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.trivia-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+}
+.trivia-dot.correct { background: #66bb6a; }
+.trivia-dot.wrong { background: #ef5350; }
+.trivia-dot.current { background: rgba(255,255,255,0.3); border: 2px solid #7e57c2; }
+
+.trivia-final {
+  text-align: center;
+  padding: 20px;
+}
+.trivia-final-score {
+  font-family: 'Playfair Display', serif;
+  font-size: 48px;
+  font-weight: 700;
+  color: #7e57c2;
+  margin-bottom: 8px;
+}
+.trivia-final-label {
+  font-size: 18px;
+  color: var(--text-dim);
+  margin-bottom: 24px;
+}
+.trivia-final-msg {
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
 </style>
 </head>
 <body>
@@ -1430,7 +1629,577 @@ function toggleLineage(btn, viewerKey, personName) {
   btn.textContent = '🔗 Hide connection';
 }
 
+
+
+// === TRIVIA GAME ===
+const triviaBtn = document.getElementById('triviaBtn');
+const triviaPanel = document.getElementById('triviaPanel');
+const triviaClose = document.getElementById('triviaClose');
+const triviaBody = document.getElementById('triviaBody');
+const triviaNext = document.getElementById('triviaNext');
+
+let triviaState = { questions: [], current: 0, score: 0, answered: false };
+const TRIVIA_COUNT = 10;
+
+// Show trivia button after viewer selected
+const _origSV = selectViewer;
+selectViewer = function(key) {
+  _origSV(key);
+  triviaBtn.classList.remove('hidden');
+};
+
+triviaBtn.addEventListener('click', () => {
+  startTrivia();
+  triviaPanel.classList.add('open');
+  triviaBtn.classList.add('hidden');
+});
+
+triviaClose.addEventListener('click', () => {
+  triviaPanel.classList.remove('open');
+  triviaBtn.classList.remove('hidden');
+});
+
+triviaNext.addEventListener('click', () => {
+  triviaState.current++;
+  if (triviaState.current >= triviaState.questions.length) {
+    showTriviaFinal();
+  } else {
+    showTriviaQuestion();
+  }
+});
+
+function extractYear(dateStr) {
+  if (!dateStr) return null;
+  const m = dateStr.match(/\b(1[0-9]{3})\b/);
+  return m ? parseInt(m[1]) : null;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getViewerAncestors() {
+  const rels = RELATIONSHIPS[activeViewer] || {};
+  return Object.entries(rels).map(([name, rel]) => ({
+    name: name.replace(/ \*$/, '').replace(/^! /, ''),
+    rel: rel,
+    rawName: name
+  })).filter(a => a.name.length > 2 && a.name !== 'a');
+}
+
+function getAncestorEvents(ancestorName) {
+  return ALL_EVENTS.filter(e => {
+    const clean = e.person.replace(/ \*$/, '').replace(/^! /, '');
+    return clean === ancestorName;
+  });
+}
+
+function getRelDepth(rel) {
+  if (rel.includes('Grand')) {
+    const m = rel.match(/(\d+)(?:st|nd|rd|th)/);
+    if (m) return parseInt(m[1]) + 2;
+    return rel.includes('Great') ? 3 : 2;
+  }
+  return 1;
+}
+
+function generateQuestions() {
+  const ancestors = getViewerAncestors();
+  if (ancestors.length < 4) return [];
+  
+  const questions = [];
+  const generators = [
+    genWhereQuestion,
+    genWhenQuestion,
+    genWhoIsRelQuestion,
+    genRelationshipQuestion,
+    genFamilyLineQuestion,
+    genOddOneOutQuestion,
+    genEventTypeQuestion,
+    genOldestQuestion
+  ];
+  
+  let attempts = 0;
+  while (questions.length < TRIVIA_COUNT && attempts < 80) {
+    const gen = generators[Math.floor(Math.random() * generators.length)];
+    const q = gen(ancestors);
+    if (q) {
+      // Avoid duplicate question text
+      if (!questions.some(existing => existing.question === q.question)) {
+        questions.push(q);
+      }
+    }
+    attempts++;
+  }
+  return questions;
+}
+
+function genWhereQuestion(ancestors) {
+  const withEvents = ancestors.filter(a => {
+    const evts = getAncestorEvents(a.name);
+    return evts.some(e => ['Birth','Baptism','Marriage','Death','Burial'].includes(e.eventType));
+  });
+  if (withEvents.length < 1) return null;
+  const pick = withEvents[Math.floor(Math.random() * withEvents.length)];
+  const evts = getAncestorEvents(pick.name).filter(e => ['Birth','Baptism','Marriage','Death','Burial'].includes(e.eventType));
+  const evt = evts[Math.floor(Math.random() * evts.length)];
+  const correctPlace = evt.place.split(',')[0].trim();
+  
+  // Get wrong places from other events
+  const allPlaces = [...new Set(ALL_EVENTS.map(e => e.place.split(',')[0].trim()))].filter(p => p !== correctPlace && p.length > 2);
+  if (allPlaces.length < 3) return null;
+  const wrongPlaces = shuffle(allPlaces).slice(0, 3);
+  
+  const options = shuffle([correctPlace, ...wrongPlaces]);
+  return {
+    category: 'Places',
+    question: 'Where did ' + pick.name + '\'s ' + evt.eventType.toLowerCase() + ' take place?',
+    options: options,
+    correct: options.indexOf(correctPlace),
+    feedback: pick.name + ' (your ' + pick.rel.toLowerCase() + ') — ' + evt.eventType.toLowerCase() + ' in ' + correctPlace + (evt.date ? ' (' + evt.date + ')' : '') + '.'
+  };
+}
+
+function genWhenQuestion(ancestors) {
+  const withDates = ancestors.filter(a => {
+    const evts = getAncestorEvents(a.name);
+    return evts.some(e => extractYear(e.date) && ['Birth','Death','Marriage'].includes(e.eventType));
+  });
+  if (withDates.length < 1) return null;
+  const pick = withDates[Math.floor(Math.random() * withDates.length)];
+  const evts = getAncestorEvents(pick.name).filter(e => extractYear(e.date) && ['Birth','Death','Marriage'].includes(e.eventType));
+  const evt = evts[Math.floor(Math.random() * evts.length)];
+  const correctYear = extractYear(evt.date);
+  
+  const offsets = shuffle([-47, -23, 18, 31, -12, 25, -35, 42]).slice(0, 3);
+  const wrongYears = offsets.map(o => correctYear + o).filter(y => y > 1550 && y < 1960);
+  if (wrongYears.length < 3) return null;
+  
+  const options = shuffle([String(correctYear), ...wrongYears.slice(0,3).map(String)]);
+  return {
+    category: 'Dates',
+    question: 'In what year was ' + pick.name + '\'s ' + evt.eventType.toLowerCase() + '?',
+    options: options,
+    correct: options.indexOf(String(correctYear)),
+    feedback: pick.name + ' — ' + evt.eventType.toLowerCase() + ' in ' + correctYear + ' at ' + evt.place.split(',')[0].trim() + '.'
+  };
+}
+
+function genWhoIsRelQuestion(ancestors) {
+  const rels = ['Grandfather', 'Grandmother', 'Great-Grandfather', 'Great-Grandmother', '2nd Great-Grandfather', '2nd Great-Grandmother', '3rd Great-Grandfather', '3rd Great-Grandmother'];
+  const available = ancestors.filter(a => rels.includes(a.rel));
+  if (available.length < 1) return null;
+  const pick = available[Math.floor(Math.random() * available.length)];
+  
+  const wrongPeople = shuffle(ancestors.filter(a => a.name !== pick.name)).slice(0, 3);
+  if (wrongPeople.length < 3) return null;
+  
+  const options = shuffle([pick.name, ...wrongPeople.map(a => a.name)]);
+  return {
+    category: 'Family Tree',
+    question: 'Who is your ' + pick.rel.toLowerCase() + '?',
+    options: options,
+    correct: options.indexOf(pick.name),
+    feedback: pick.name + ' is your ' + pick.rel.toLowerCase() + '.'
+  };
+}
+
+function genRelationshipQuestion(ancestors) {
+  const pick = ancestors[Math.floor(Math.random() * ancestors.length)];
+  const sameDepth = ancestors.filter(a => a.rel === pick.rel && a.name !== pick.name);
+  const diffRels = [...new Set(ancestors.map(a => a.rel))].filter(r => r !== pick.rel);
+  if (diffRels.length < 3) return null;
+  
+  const wrongRels = shuffle(diffRels).slice(0, 3);
+  const options = shuffle([pick.rel, ...wrongRels]);
+  return {
+    category: 'Relationships',
+    question: 'What is ' + pick.name + '\'s relationship to you?',
+    options: options,
+    correct: options.indexOf(pick.rel),
+    feedback: pick.name + ' is your ' + pick.rel.toLowerCase() + '.'
+  };
+}
+
+function genFamilyLineQuestion(ancestors) {
+  const withFamily = ancestors.filter(a => {
+    const evts = getAncestorEvents(a.name);
+    return evts.length > 0 && evts[0].families && evts[0].families.length > 0;
+  });
+  if (withFamily.length < 1) return null;
+  const pick = withFamily[Math.floor(Math.random() * withFamily.length)];
+  const evts = getAncestorEvents(pick.name);
+  const correctFamily = evts[0].families[0];
+  
+  const allFamilies = ['Seltveit', 'Anderson', 'Kittelson', 'Slinde', 'Tudahl'];
+  const wrongFamilies = allFamilies.filter(f => f !== correctFamily);
+  if (wrongFamilies.length < 3) return null;
+  
+  const options = shuffle([correctFamily, ...shuffle(wrongFamilies).slice(0,3)]);
+  return {
+    category: 'Family Lines',
+    question: 'Which family line does ' + pick.name + ' belong to?',
+    options: options,
+    correct: options.indexOf(correctFamily),
+    feedback: pick.name + ' is part of the ' + correctFamily + ' family line.'
+  };
+}
+
+function genOddOneOutQuestion(ancestors) {
+  const evtsMap = {};
+  ancestors.forEach(a => { evtsMap[a.name] = getAncestorEvents(a.name); });
+  const withPlace = ancestors.filter(a => evtsMap[a.name].length > 0);
+  if (withPlace.length < 3) return null;
+  
+  // Find a place with multiple ancestors
+  const placeAncestors = {};
+  withPlace.forEach(a => {
+    evtsMap[a.name].forEach(e => {
+      const region = e.place.split(',').slice(0, 2).join(',').trim();
+      if (!placeAncestors[region]) placeAncestors[region] = new Set();
+      placeAncestors[region].add(a.name);
+    });
+  });
+  
+  const goodRegions = Object.entries(placeAncestors).filter(([r, s]) => s.size >= 3);
+  if (goodRegions.length < 1) return null;
+  const [region, names] = goodRegions[Math.floor(Math.random() * goodRegions.length)];
+  const regionNames = [...names];
+  
+  // Find someone NOT in this region
+  const outsiders = withPlace.filter(a => !names.has(a.name));
+  if (outsiders.length < 1) return null;
+  const oddOne = outsiders[Math.floor(Math.random() * outsiders.length)];
+  
+  const insiders = shuffle(regionNames).slice(0, 3);
+  const options = shuffle([oddOne.name, ...insiders]);
+  const regionShort = region.split(',')[0].trim();
+  return {
+    category: 'Odd One Out',
+    question: 'Which of these ancestors did NOT have events in the ' + regionShort + ' area?',
+    options: options,
+    correct: options.indexOf(oddOne.name),
+    feedback: oddOne.name + ' had events elsewhere, while the others had events in ' + regionShort + '.'
+  };
+}
+
+function genEventTypeQuestion(ancestors) {
+  const withEvents = ancestors.filter(a => getAncestorEvents(a.name).length > 0);
+  if (withEvents.length < 1) return null;
+  const pick = withEvents[Math.floor(Math.random() * withEvents.length)];
+  const evts = getAncestorEvents(pick.name);
+  const types = [...new Set(evts.map(e => e.eventType))];
+  if (types.length < 1) return null;
+  
+  const allTypes = ['Birth', 'Death', 'Marriage', 'Baptism', 'Census', 'Burial', 'Confirmation', 'Residence'];
+  const notTypes = allTypes.filter(t => !types.includes(t));
+  if (notTypes.length < 1) return null;
+  const wrongAnswer = notTypes[Math.floor(Math.random() * notTypes.length)];
+  
+  const rightAnswers = shuffle(types).slice(0, 3);
+  if (rightAnswers.length < 3) {
+    while (rightAnswers.length < 3 && notTypes.length > 1) {
+      const extra = notTypes.pop();
+      if (extra !== wrongAnswer) rightAnswers.push(extra);
+    }
+  }
+  if (rightAnswers.length < 3) return null;
+  
+  const options = shuffle([wrongAnswer, ...rightAnswers.slice(0,3)]);
+  return {
+    category: 'Events',
+    question: 'Which type of event do we NOT have recorded for ' + pick.name + '?',
+    options: options,
+    correct: options.indexOf(wrongAnswer),
+    feedback: 'We have ' + types.join(', ').toLowerCase() + ' records for ' + pick.name + ' (your ' + pick.rel.toLowerCase() + ').'
+  };
+}
+
+function genOldestQuestion(ancestors) {
+  // Find 4 ancestors with birth years and ask which is oldest
+  const withBirth = ancestors.filter(a => {
+    const evts = getAncestorEvents(a.name);
+    return evts.some(e => e.eventType === 'Birth' && extractYear(e.date));
+  });
+  if (withBirth.length < 4) return null;
+  const picks = shuffle(withBirth).slice(0, 4);
+  
+  const birthYears = picks.map(a => {
+    const evt = getAncestorEvents(a.name).find(e => e.eventType === 'Birth' && extractYear(e.date));
+    return { name: a.name, year: extractYear(evt.date), rel: a.rel };
+  }).sort((a, b) => a.year - b.year);
+  
+  const oldest = birthYears[0];
+  const options = shuffle(picks.map(a => a.name));
+  return {
+    category: 'History',
+    question: 'Which of these ancestors was born earliest?',
+    options: options,
+    correct: options.indexOf(oldest.name),
+    feedback: oldest.name + ' was born in ' + oldest.year + ' — your ' + oldest.rel.toLowerCase() + '.'
+  };
+}
+
+function startTrivia() {
+  triviaState = { questions: generateQuestions(), current: 0, score: 0, answered: false };
+  if (triviaState.questions.length === 0) {
+    document.getElementById('triviaQuestion').textContent = 'Not enough ancestor data to generate trivia. Try selecting a different person.';
+    return;
+  }
+  showTriviaQuestion();
+}
+
+function showTriviaQuestion() {
+  triviaState.answered = false;
+  const q = triviaState.questions[triviaState.current];
+  
+  // Progress dots
+  const prog = document.getElementById('triviaProgress');
+  prog.innerHTML = triviaState.questions.map((_, i) => {
+    let cls = 'trivia-dot';
+    if (i < triviaState.current) cls += triviaState.questions[i].wasCorrect ? ' correct' : ' wrong';
+    else if (i === triviaState.current) cls += ' current';
+    return '<div class="' + cls + '"></div>';
+  }).join('');
+  
+  document.getElementById('triviaScore').textContent = triviaState.score + ' / ' + triviaState.questions.length;
+  document.getElementById('triviaCategory').textContent = q.category;
+  document.getElementById('triviaQuestion').textContent = q.question;
+  document.getElementById('triviaFeedback').textContent = '';
+  triviaNext.classList.remove('visible');
+  
+  const optDiv = document.getElementById('triviaOptions');
+  optDiv.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'trivia-option';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => answerTrivia(i));
+    optDiv.appendChild(btn);
+  });
+}
+
+function answerTrivia(chosen) {
+  if (triviaState.answered) return;
+  triviaState.answered = true;
+  
+  const q = triviaState.questions[triviaState.current];
+  const optBtns = document.querySelectorAll('.trivia-option');
+  
+  optBtns.forEach((btn, i) => {
+    btn.classList.add('disabled');
+    if (i === q.correct) btn.classList.add('correct');
+    if (i === chosen && chosen !== q.correct) btn.classList.add('wrong');
+  });
+  
+  if (chosen === q.correct) {
+    triviaState.score++;
+    q.wasCorrect = true;
+    document.getElementById('triviaFeedback').innerHTML = '✅ <strong>Correct!</strong> ' + q.feedback;
+  } else {
+    q.wasCorrect = false;
+    document.getElementById('triviaFeedback').innerHTML = '❌ <strong>Not quite.</strong> ' + q.feedback;
+  }
+  
+  document.getElementById('triviaScore').textContent = triviaState.score + ' / ' + triviaState.questions.length;
+  
+  // Update progress dot
+  const dots = document.querySelectorAll('.trivia-dot');
+  if (dots[triviaState.current]) {
+    dots[triviaState.current].className = 'trivia-dot ' + (q.wasCorrect ? 'correct' : 'wrong');
+  }
+  
+  triviaNext.classList.add('visible');
+  triviaNext.textContent = triviaState.current < triviaState.questions.length - 1 ? 'Next Question →' : 'See Results →';
+}
+
+function showTriviaFinal() {
+  const pct = Math.round(triviaState.score / triviaState.questions.length * 100);
+  let msg = '';
+  if (pct === 100) msg = 'Perfect score! You really know your Norwegian roots!';
+  else if (pct >= 80) msg = 'Excellent! You know your ancestors well.';
+  else if (pct >= 60) msg = 'Good job! You\'re learning about your family history.';
+  else if (pct >= 40) msg = 'Not bad! Explore the map to learn more about your ancestors.';
+  else msg = 'Keep exploring the map — there\'s so much to discover about your family!';
+  
+  document.getElementById('triviaProgress').innerHTML = '';
+  document.getElementById('triviaCategory').textContent = '';
+  document.getElementById('triviaQuestion').innerHTML = '';
+  document.getElementById('triviaOptions').innerHTML = '';
+  document.getElementById('triviaFeedback').innerHTML = '';
+  triviaNext.classList.remove('visible');
+  
+  document.getElementById('triviaQuestion').innerHTML = 
+    '<div class="trivia-final">' +
+    '<div class="trivia-final-score">' + triviaState.score + '/' + triviaState.questions.length + '</div>' +
+    '<div class="trivia-final-label">' + pct + '% correct</div>' +
+    '<div class="trivia-final-msg">' + msg + '</div>' +
+    '</div>';
+  
+  triviaNext.textContent = 'Play Again';
+  triviaNext.classList.add('visible');
+  triviaNext.onclick = () => {
+    triviaNext.onclick = null;
+    triviaNext.addEventListener('click', () => {
+      triviaState.current++;
+      if (triviaState.current >= triviaState.questions.length) showTriviaFinal();
+      else showTriviaQuestion();
+    });
+    startTrivia();
+  };
+}
+
+
+
+// === NORWEGIAN JOKES ===
+const NORWEGIAN_JOKES = [
+  {setup: "Why do Norwegian ships have barcodes on them?", punchline: "So when they come back to port, they can Scandinavian."},
+  {setup: "What do you call a Norwegian prostitute?", punchline: "A Fjord Escort."},
+  {setup: "How do you sink a Norwegian submarine?", punchline: "You swim down and knock on the door."},
+  {setup: "Why don't Norwegians ever win at poker?", punchline: "Because every time they get a good hand, they go out and show it to everyone."},
+  {setup: "What's the difference between a Norwegian wedding and a Norwegian funeral?", punchline: "At the funeral, there's one less person drinking."},
+  {setup: "A Swede, a Dane, and a Norwegian find a magic lamp. The genie gives them each one wish. The Swede says, 'I want a wall around Sweden to keep everyone out.' Done. The Dane says, 'I want a wall around Denmark too.' Done. The Norwegian says, 'Tell me more about these walls.' The genie says, 'They're 200 meters high and completely sealed.' The Norwegian smiles and says,", punchline: "'Fill them both with water.'"},
+  {setup: "Why do Norwegians carry a car door through the desert?", punchline: "So they can roll down the window when it gets hot."},
+  {setup: "How do you identify the Norwegian at a cockfight?", punchline: "He's the one who brings the duck. How do you identify the Swede? He bets on the duck. How do you identify the Dane? The duck wins."},
+  {setup: "Ole and Lena were sitting down to their usual morning cup of coffee. Ole said to Lena, 'If I were to die suddenly, I want you to immediately sell all my stuff.' Lena asked, 'Why would I do that?' Ole replied,", punchline: "'Because I'd bet you'd remarry some idiot, and I don't want him using my stuff.'"},
+  {setup: "A Norwegian was asked if it was true that Norwegians always answer a question with another question. He replied,", punchline: "'Who told you that?'"},
+  {setup: "Ole went to the doctor. The doctor said, 'You need to stop masturbating.' Ole asked, 'Why?' The doctor said,", punchline: "'Because I'm trying to examine you.'"},
+  {setup: "Why did the Norwegian bring a ladder to the bar?", punchline: "He heard the drinks were on the house."},
+  {setup: "Three Norwegians and three Swedes are traveling by train. The Swedes each buy a ticket, but the Norwegians only buy one. The Swedes ask how three people can travel on one ticket. 'Watch and learn,' say the Norwegians. When the conductor comes, all three Norwegians squeeze into the bathroom. The conductor knocks on the door, they slide the ticket under the door, and the conductor moves on. The Swedes think this is brilliant and on the return trip, they buy one ticket. The Norwegians buy none. 'How will you travel without a ticket?' ask the Swedes. The Norwegians say, 'Watch and learn.' When the conductor approaches, the Swedes pile into one bathroom, the Norwegians into another. Then one Norwegian slips out, walks to the Swedes' bathroom, knocks on the door, and says,", punchline: "'Ticket, please.'"},
+  {setup: "What's the difference between Norwegians and Swedes?", punchline: "Norwegians have nice neighbors."},
+  {setup: "Ole and Sven were out hunting when Ole fell down and appeared to not be breathing. Sven called 911. 'My friend is dead! What do I do?' The operator said, 'Calm down. First, let's make sure he's dead.' There was silence, then a gunshot. Sven came back on and said,", punchline: "'OK, now what?'"},
+  {setup: "How does a Norwegian count to ten?", punchline: "1, 2, 3, 4, 5, 6, 7, 8, 9, SKÅL!"},
+  {setup: "Why do Norwegian flags have a cross on them?", punchline: "Have you tried folding a fjord?"},
+  {setup: "Ole walks into a bar and asks for a beer. The bartender says, 'That'll be five dollars.' Ole puts down two dollars. The bartender says, 'You're short.' Ole replies,", punchline: "'Ja, I know. My whole family is.'"},
+  {setup: "What do you get when you cross a Norwegian and a Swede?", punchline: "Someone too dumb to be ashamed of it."},
+  {setup: "Lena told Ole, 'If you were half a man, you'd go in there and stand up for yourself.' Ole said, 'If I were half a man,", punchline: "you'd be talking to someone else.'"}
+];
+
+let lastJokeIndex = -1;
+
+function tellNorwegianJoke() {
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * NORWEGIAN_JOKES.length);
+  } while (idx === lastJokeIndex && NORWEGIAN_JOKES.length > 1);
+  lastJokeIndex = idx;
+  
+  const joke = NORWEGIAN_JOKES[idx];
+  
+  // Create modal
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;padding:20px;';
+  
+  const card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border-radius:20px;padding:28px 24px;max-width:400px;width:100%;text-align:center;border:1px solid rgba(255,255,255,0.08);';
+  
+  const emoji = document.createElement('div');
+  emoji.style.cssText = 'font-size:40px;margin-bottom:16px;';
+  emoji.textContent = '🇳🇴';
+  
+  const setup = document.createElement('div');
+  setup.style.cssText = 'font-size:17px;color:#fff;line-height:1.5;margin-bottom:20px;';
+  setup.textContent = joke.setup;
+  
+  const reveal = document.createElement('button');
+  reveal.style.cssText = 'padding:12px 28px;border-radius:24px;background:#7e57c2;color:#fff;border:none;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:16px;';
+  reveal.textContent = 'Show punchline';
+  
+  const punchline = document.createElement('div');
+  punchline.style.cssText = 'font-size:18px;color:#ffb74d;font-weight:600;line-height:1.5;margin-bottom:20px;display:none;';
+  punchline.textContent = joke.punchline;
+  
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:10px;justify-content:center;margin-top:8px;';
+  
+  const another = document.createElement('button');
+  another.style.cssText = 'padding:12px 24px;border-radius:24px;background:rgba(255,255,255,0.08);color:var(--text);border:1px solid rgba(255,255,255,0.12);font-size:15px;cursor:pointer;display:none;';
+  another.textContent = 'Another joke';
+  
+  const close = document.createElement('button');
+  close.style.cssText = 'padding:12px 24px;border-radius:24px;background:rgba(255,255,255,0.08);color:var(--text);border:1px solid rgba(255,255,255,0.12);font-size:15px;cursor:pointer;display:none;';
+  close.textContent = 'Close';
+  
+  reveal.addEventListener('click', () => {
+    punchline.style.display = 'block';
+    reveal.style.display = 'none';
+    another.style.display = 'block';
+    close.style.display = 'block';
+  });
+  
+  another.addEventListener('click', () => {
+    overlay.remove();
+    tellNorwegianJoke();
+  });
+  
+  close.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  
+  btnRow.appendChild(another);
+  btnRow.appendChild(close);
+  card.appendChild(emoji);
+  card.appendChild(setup);
+  card.appendChild(reveal);
+  card.appendChild(punchline);
+  card.appendChild(btnRow);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+}
+
+// Add joke button to trivia panel header
+document.addEventListener('DOMContentLoaded', () => {
+  const trivHdr = document.querySelector('.trivia-header > div:first-child');
+  if (trivHdr) {
+    const jokeLink = document.createElement('div');
+    jokeLink.style.cssText = 'font-size:14px;color:#ffb74d;cursor:pointer;margin-top:4px;';
+    jokeLink.textContent = '🇳🇴 Tell me a Norwegian joke';
+    jokeLink.addEventListener('click', tellNorwegianJoke);
+    trivHdr.appendChild(jokeLink);
+  }
+});
+
+// Also accessible from welcome screen - add after person grid
+const jokeFloater = document.createElement('div');
+jokeFloater.style.cssText = 'position:fixed;bottom:max(24px, env(safe-area-inset-bottom));left:16px;z-index:1100;padding:12px 20px;border-radius:24px;background:rgba(22,33,62,0.9);border:1px solid rgba(255,255,255,0.1);color:#ffb74d;font-size:14px;cursor:pointer;display:none;backdrop-filter:blur(8px);';
+jokeFloater.textContent = '🇳🇴 Norwegian joke';
+jokeFloater.addEventListener('click', tellNorwegianJoke);
+document.body.appendChild(jokeFloater);
+
+// Show joke button after viewer selected
+const _origSV2 = selectViewer;
+selectViewer = function(key) {
+  _origSV2(key);
+  jokeFloater.style.display = 'block';
+};
+
 </script>
 
+
+<button class="trivia-btn hidden" id="triviaBtn" title="Family trivia">🧩</button>
+
+<div class="trivia-panel" id="triviaPanel">
+  <div class="trivia-header">
+    <div>
+      <div class="trivia-header-title">Family Trivia</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="trivia-score" id="triviaScore"></div>
+      <button class="trivia-close" id="triviaClose">✕</button>
+    </div>
+  </div>
+  <div class="trivia-body" id="triviaBody">
+    <div class="trivia-progress" id="triviaProgress"></div>
+    <div class="trivia-category" id="triviaCategory"></div>
+    <div class="trivia-question" id="triviaQuestion"></div>
+    <div class="trivia-options" id="triviaOptions"></div>
+    <div class="trivia-feedback" id="triviaFeedback"></div>
+    <button class="trivia-next" id="triviaNext">Next Question →</button>
+  </div>
+</div>
 </body>
 </html>
