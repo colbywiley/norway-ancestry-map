@@ -984,7 +984,7 @@ body {
     <div class="stats-row" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <span class="stat">Showing <strong id="visibleCount">0</strong> of <strong id="totalCount">0</strong> events</span>
       <div style="display:flex;gap:8px;" id="funButtons">
-        <button id="triviaInlineBtn" onclick="startTrivia();document.getElementById('triviaPanel').classList.add('open');" style="display:none;padding:6px 14px;border-radius:20px;border:1px solid #7e57c2;background:#7e57c222;color:#7e57c2;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🧩 Trivia</button>
+        <button id="triviaInlineBtn" onclick="showTriviaMenu();" style="display:none;padding:6px 14px;border-radius:20px;border:1px solid #7e57c2;background:#7e57c222;color:#7e57c2;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🧩 Trivia</button>
         <button id="jokeInlineBtn" onclick="tellNorwegianJoke();" style="display:none;padding:6px 14px;border-radius:20px;border:1px solid #ffb74d;background:#ffb74d22;color:#ffb74d;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">😂 Joke</button>
       </div>
     </div>
@@ -998,7 +998,7 @@ body {
 <div class="trivia-panel" id="triviaPanel">
   <div class="trivia-header">
     <div>
-      <div class="trivia-header-title">Family Trivia</div>
+      <div class="trivia-header-title" id="triviaTitle">Family Trivia</div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
       <div class="trivia-score" id="triviaScore"></div>
@@ -1926,8 +1926,9 @@ function genOldestQuestion(ancestors) {
   };
 }
 
-function startTrivia() {
-  triviaState = { questions: generateQuestions(), current: 0, score: 0, answered: false };
+function startTrivia(level) {
+  const qs = (level === 'standard') ? generateStandardQuestions() : generateQuestions();
+  triviaState = { questions: qs, current: 0, score: 0, answered: false, level: level || 'advanced' };
   if (triviaState.questions.length === 0) {
     document.getElementById('triviaQuestion').textContent = 'Not enough ancestor data to generate trivia. Try selecting a different person.';
     return;
@@ -1949,6 +1950,7 @@ function showTriviaQuestion() {
   }).join('');
   
   document.getElementById('triviaScore').textContent = triviaState.score + ' / ' + triviaState.questions.length;
+  document.getElementById('triviaTitle').textContent = triviaState.level === 'standard' ? 'Family Trivia' : 'Family Trivia — Advanced';
   document.getElementById('triviaCategory').textContent = q.category;
   document.getElementById('triviaQuestion').textContent = q.question;
   document.getElementById('triviaFeedback').textContent = '';
@@ -1988,6 +1990,7 @@ function answerTrivia(chosen) {
   }
   
   document.getElementById('triviaScore').textContent = triviaState.score + ' / ' + triviaState.questions.length;
+  document.getElementById('triviaTitle').textContent = triviaState.level === 'standard' ? 'Family Trivia' : 'Family Trivia — Advanced';
   
   // Update progress dot
   const dots = document.querySelectorAll('.trivia-dot');
@@ -2129,6 +2132,258 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Show joke button after viewer selected
 // joke button shown via inline panel button
+
+
+
+// === TRIVIA LEVEL SELECTION ===
+function showTriviaMenu() {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;padding:20px;';
+  
+  const card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;text-align:center;border:1px solid rgba(255,255,255,0.08);';
+  
+  const title = document.createElement('div');
+  title.style.cssText = 'font-family:Playfair Display,serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:6px;';
+  title.textContent = 'Family Trivia';
+  
+  const sub = document.createElement('div');
+  sub.style.cssText = 'font-size:14px;color:var(--text-dim);margin-bottom:24px;';
+  sub.textContent = 'Choose your level';
+  
+  const btn1 = document.createElement('button');
+  btn1.style.cssText = 'display:block;width:100%;padding:16px;border-radius:14px;background:#7e57c222;border:2px solid #7e57c2;color:#7e57c2;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:12px;text-align:left;font-family:DM Sans,sans-serif;';
+  btn1.innerHTML = '🧩 <strong>Standard</strong><br><span style="font-size:13px;font-weight:400;opacity:0.8;">Fun facts about the family — no expertise needed</span>';
+  btn1.addEventListener('click', () => { overlay.remove(); startTrivia('standard'); document.getElementById('triviaPanel').classList.add('open'); });
+  
+  const btn2 = document.createElement('button');
+  btn2.style.cssText = 'display:block;width:100%;padding:16px;border-radius:14px;background:#e9456022;border:2px solid #e94560;color:#e94560;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:16px;text-align:left;font-family:DM Sans,sans-serif;';
+  btn2.innerHTML = '🔥 <strong>Advanced</strong> <span style="font-size:12px;opacity:0.7;">(Only for Valerie)</span><br><span style="font-size:13px;font-weight:400;opacity:0.8;">Specific dates, places, and relationships</span>';
+  btn2.addEventListener('click', () => { overlay.remove(); startTrivia('advanced'); document.getElementById('triviaPanel').classList.add('open'); });
+  
+  const cancel = document.createElement('button');
+  cancel.style.cssText = 'padding:10px 24px;border-radius:20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-dim);font-size:14px;cursor:pointer;font-family:DM Sans,sans-serif;';
+  cancel.textContent = 'Cancel';
+  cancel.addEventListener('click', () => overlay.remove());
+  
+  card.appendChild(title);
+  card.appendChild(sub);
+  card.appendChild(btn1);
+  card.appendChild(btn2);
+  card.appendChild(cancel);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+}
+
+// === STANDARD (EASY) QUESTION GENERATORS ===
+
+function genFamilyRegionQuestion() {
+  // "What region of Norway is the Kittelson family mostly from?"
+  const familyData = {
+    'Kittelson': {answer: 'Hallingdal (Buskerud)', wrong: ['Telemark', 'Sogn og Fjordane', 'Rogaland'], fact: 'The Kittelson family is mostly from the Hallingdal valley in Buskerud, especially around Nes and Fl\u00e5.'},
+    'Seltveit': {answer: 'Telemark', wrong: ['Sogn og Fjordane', 'Buskerud', 'Rogaland'], fact: 'The Seltveit family comes from Telemark, centered around Rauland, Vinje, and Seljord.'},
+    'Anderson': {answer: 'Telemark', wrong: ['Sogn og Fjordane', 'Buskerud', 'Oppland'], fact: 'The Anderson family is mainly from Telemark, with roots in Kviteseid and Seljord, plus some connections to Rogaland.'},
+    'Slinde': {answer: 'Sogn og Fjordane', wrong: ['Telemark', 'Buskerud', 'Rogaland'], fact: 'The Slinde family comes from the Sognefjord area in Sogn og Fjordane, especially L\u00e6rdal, Aurland, and Sogndal.'},
+    'Tudahl': {answer: 'Oppland & Telemark', wrong: ['Sogn og Fjordane', 'Buskerud', 'Rogaland'], fact: 'The Tudahl family has roots in Nord-Fron (Oppland) and Skafsa (Telemark).'}
+  };
+  const fams = Object.keys(familyData);
+  const fam = fams[Math.floor(Math.random() * fams.length)];
+  const data = familyData[fam];
+  const options = shuffle([data.answer, ...data.wrong]);
+  return {
+    category: 'Family Origins',
+    question: 'What region of Norway is the ' + fam + ' family mostly from?',
+    options: options,
+    correct: options.indexOf(data.answer),
+    feedback: data.fact
+  };
+}
+
+function genHowManyFamiliesQuestion() {
+  const options = shuffle(['3', '4', '5', '6']);
+  return {
+    category: 'Family Basics',
+    question: 'How many family lines are represented on this map?',
+    options: options,
+    correct: options.indexOf('5'),
+    feedback: 'There are 5 family lines: Seltveit, Anderson, Kittelson, Slinde, and Tudahl.'
+  };
+}
+
+function genFamilyNameQuestion() {
+  const correct = shuffle(['Seltveit', 'Anderson', 'Kittelson', 'Slinde', 'Tudahl'])[0];
+  const wrong = shuffle(['Larsen', 'Hansen', 'Johansen', 'Berg', 'Nilsen', 'Pedersen', 'Eriksen']).slice(0, 3);
+  const options = shuffle([correct, ...wrong]);
+  return {
+    category: 'Family Basics',
+    question: 'Which of these is one of our family lines on this map?',
+    options: options,
+    correct: options.indexOf(correct),
+    feedback: 'Our 5 family lines are Seltveit, Anderson, Kittelson, Slinde, and Tudahl.'
+  };
+}
+
+function genMostEventsQuestion() {
+  // Anderson has 323, Seltveit 266, Kittelson 216, Slinde 201, Tudahl 55
+  const options = shuffle(['Anderson', 'Seltveit', 'Kittelson', 'Slinde']);
+  return {
+    category: 'Fun Facts',
+    question: 'Which family line has the most events on the map?',
+    options: options,
+    correct: options.indexOf('Anderson'),
+    feedback: 'The Anderson family has the most with over 320 events, followed by Seltveit with about 266.'
+  };
+}
+
+function genSlindeQuestion() {
+  const options = shuffle(['A farm on the Sognefjord', 'A city in Telemark', 'A mountain in Buskerud', 'A river in Oppland']);
+  return {
+    category: 'Places',
+    question: 'What is Slinde?',
+    options: options,
+    correct: options.indexOf('A farm on the Sognefjord'),
+    feedback: 'Slinde (Slinda) is a historic farm on the shores of the Sognefjord in Sogndal municipality. It\'s the namesake of the Slinde family line.'
+  };
+}
+
+function genTelemarkQuestion() {
+  const options = shuffle(['Seltveit & Anderson', 'Slinde & Kittelson', 'Tudahl & Slinde', 'Kittelson & Tudahl']);
+  return {
+    category: 'Family Origins',
+    question: 'Which two family lines have the strongest roots in Telemark?',
+    options: options,
+    correct: options.indexOf('Seltveit & Anderson'),
+    feedback: 'Both the Seltveit and Anderson families are deeply rooted in Telemark, especially in areas like Rauland, Vinje, Kviteseid, and Seljord.'
+  };
+}
+
+function genEventCountQuestion() {
+  const options = shuffle(['About 500', 'About 750', 'About 1,000', 'About 2,000']);
+  return {
+    category: 'Fun Facts',
+    question: 'Roughly how many ancestral events are on this map?',
+    options: options,
+    correct: options.indexOf('About 1,000'),
+    feedback: 'There are 1,055 events on the map, spanning from 1601 to 1945!'
+  };
+}
+
+function genOldestRecordQuestion() {
+  const options = shuffle(['Around 1600', 'Around 1700', 'Around 1800', 'Around 1500']);
+  return {
+    category: 'History',
+    question: 'How far back does the oldest record on this map go?',
+    options: options,
+    correct: options.indexOf('Around 1600'),
+    feedback: 'The oldest events on the map date back to around 1601, from the Anderson family in Telemark.'
+  };
+}
+
+function genEventTypeBasicQuestion() {
+  const options = shuffle(['Birth', 'Graduation', 'Military service', 'Baptism']);
+  return {
+    category: 'Basics',
+    question: 'Which of these is the most common type of event on the map?',
+    options: options,
+    correct: options.indexOf('Birth'),
+    feedback: 'Birth records are the most common with 250 events, followed by Death (190), Census (169), and Marriage (135).'
+  };
+}
+
+function genNorwayFactQuestion() {
+  const facts = [
+    {q: 'What does "kyrkje" mean in Norwegian?', a: 'Church', w: ['Farm', 'Mountain', 'River'], f: 'Kyrkje means church. You\'ll see it on the map as the location for baptisms, marriages, and burials.'},
+    {q: 'What does "gard" mean in Norwegian?', a: 'Farm', w: ['Church', 'Village', 'Lake'], f: 'Gard (or g\u00e5rd) means farm. Most of your ancestors lived on named farms across Norway.'},
+    {q: 'In old Norwegian naming, what does "-datter" mean?', a: 'Daughter of', w: ['Wife of', 'Mother of', 'Sister of'], f: 'The suffix -datter means "daughter of." So Halvorsdatter means daughter of Halvor. Sons got -sen or -son.'},
+    {q: 'In old Norwegian naming, what does "-sen" mean?', a: 'Son of', w: ['Brother of', 'Father of', 'Husband of'], f: 'The suffix -sen (or -son) means "son of." So Halvorsen means son of Halvor. Daughters got -datter.'},
+    {q: 'What is a "stave church" (stavkyrkje)?', a: 'A medieval wooden church', w: ['A stone fortress', 'A fishing village', 'A mountain cabin'], f: 'Stave churches are medieval wooden churches unique to Norway, built using a distinctive post-and-beam technique. Some date back to the 1100s.'},
+    {q: 'What does "fjord" mean?', a: 'A long narrow sea inlet between cliffs', w: ['A type of Norwegian boat', 'A mountain pass', 'A waterfall'], f: 'A fjord is a long, narrow inlet of sea between high cliffs, carved by glaciers. Norway\'s Sognefjord is the longest in the country.'},
+    {q: 'What does "dal" mean in Norwegian place names?', a: 'Valley', w: ['Hill', 'Lake', 'Forest'], f: 'Dal means valley. You\'ll see it in names like Hallingdal, Flatdal, and \u00c5motsdal.'},
+    {q: 'What does "nes" mean in Norwegian place names?', a: 'Headland or point', w: ['Forest', 'Farm', 'Church'], f: 'Nes means a headland, point, or promontory — land jutting into water. Nes i Hallingdal is named for this.'},
+    {q: 'What is "Telemark" famous for in Norwegian culture?', a: 'Traditional skiing and folk arts', w: ['Viking ships', 'Oil production', 'Arctic exploration'], f: 'Telemark is the birthplace of Telemark skiing and is famous for its rich folk art traditions, rosemaling, and folk music.'},
+    {q: 'What was a common reason Norwegians emigrated to America in the 1800s?', a: 'Limited farmland and economic hardship', w: ['Religious persecution', 'Mandatory military service', 'Political exile'], f: 'Most Norwegian emigrants left due to limited farmland (farms were divided among sons) and economic hardship. Over 800,000 Norwegians emigrated between 1825 and 1925.'},
+  ];
+  const pick = facts[Math.floor(Math.random() * facts.length)];
+  const options = shuffle([pick.a, ...pick.w]);
+  return {
+    category: 'Norwegian Culture',
+    question: pick.q,
+    options: options,
+    correct: options.indexOf(pick.a),
+    feedback: pick.f
+  };
+}
+
+function genWhichFamilyFromQuestion() {
+  const data = [
+    {place: 'Hallingdal', family: 'Kittelson', wrong: ['Seltveit', 'Slinde', 'Tudahl']},
+    {place: 'Rauland', family: 'Seltveit', wrong: ['Kittelson', 'Slinde', 'Tudahl']},
+    {place: 'the Sognefjord area', family: 'Slinde', wrong: ['Seltveit', 'Kittelson', 'Anderson']},
+    {place: 'Kviteseid', family: 'Anderson', wrong: ['Seltveit', 'Slinde', 'Kittelson']},
+    {place: 'Nord-Fron (Oppland)', family: 'Tudahl', wrong: ['Seltveit', 'Slinde', 'Anderson']},
+  ];
+  const pick = data[Math.floor(Math.random() * data.length)];
+  const options = shuffle([pick.family, ...pick.wrong]);
+  return {
+    category: 'Family Origins',
+    question: 'Which family line has roots in ' + pick.place + '?',
+    options: options,
+    correct: options.indexOf(pick.family),
+    feedback: 'The ' + pick.family + ' family has strong roots in ' + pick.place + '.'
+  };
+}
+
+function genAccommodationQuestion() {
+  const data = [
+    {q: 'Which city is our first stop in Norway?', a: 'Bergen', w: ['Oslo', 'Stavanger', 'Trondheim'], f: 'The trip starts in Bergen before heading into the fjord country.'},
+    {q: 'How many accommodations are planned for the trip?', a: '6', w: ['4', '5', '8'], f: 'There are 6 planned stays: Bergen, Aurlandsfjord, Fl\u00e5, Tuddal, Neset, and Stavanger.'},
+    {q: 'What dates is the Norway trip?', a: 'May 29 - June 11, 2026', w: ['June 15 - June 28, 2026', 'July 1 - July 14, 2026', 'May 15 - May 28, 2026'], f: 'The family trip to Norway runs from May 29 to June 11, 2026.'},
+  ];
+  const pick = data[Math.floor(Math.random() * data.length)];
+  const options = shuffle([pick.a, ...pick.w]);
+  return {
+    category: 'Our Trip',
+    question: pick.q,
+    options: options,
+    correct: options.indexOf(pick.a),
+    feedback: pick.f
+  };
+}
+
+function generateStandardQuestions() {
+  const generators = [
+    genFamilyRegionQuestion,
+    genHowManyFamiliesQuestion,
+    genFamilyNameQuestion,
+    genMostEventsQuestion,
+    genSlindeQuestion,
+    genTelemarkQuestion,
+    genEventCountQuestion,
+    genOldestRecordQuestion,
+    genEventTypeBasicQuestion,
+    genNorwayFactQuestion,
+    genNorwayFactQuestion,
+    genNorwayFactQuestion,
+    genWhichFamilyFromQuestion,
+    genWhichFamilyFromQuestion,
+    genAccommodationQuestion,
+  ];
+  
+  const questions = [];
+  let attempts = 0;
+  const shuffled = shuffle(generators);
+  
+  for (const gen of shuffled) {
+    if (questions.length >= TRIVIA_COUNT) break;
+    const q = gen();
+    if (q && !questions.some(existing => existing.question === q.question)) {
+      questions.push(q);
+    }
+    attempts++;
+    if (attempts > 30) break;
+  }
+  return questions;
+}
 
 </script>
 
