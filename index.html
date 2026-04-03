@@ -977,7 +977,7 @@ body {
       <div class="family-filters">
         <button class="family-btn active" id="accomToggle" style="border-color:#ffd54f;background:#ffd54f22;color:#ffd54f;">🏠 Accommodations</button>
         <button class="family-btn" id="triviaInlineBtn" style="border-color:#7e57c2;background:#7e57c222;color:#7e57c2;display:none;">🧩 Trivia</button>
-        <button class="family-btn" id="jokeInlineBtn" style="border-color:#ffb74d;background:#ffb74d22;color:#ffb74d;display:none;">🇳🇴 Joke</button>
+        <button class="family-btn" id="jokeInlineBtn" style="border-color:#ffb74d;background:#ffb74d22;color:#ffb74d;display:none;"><svg viewBox=\"0 0 22 16\" width=\"22\" height=\"16\" style=\"vertical-align:middle;\"><rect width=\"22\" height=\"16\" fill=\"#BA0C2F\"/><rect x=\"6\" width=\"4\" height=\"16\" fill=\"#fff\"/><rect y=\"6\" width=\"22\" height=\"4\" fill=\"#fff\"/><rect x=\"7\" width=\"2\" height=\"16\" fill=\"#00205B\"/><rect y=\"7\" width=\"22\" height=\"2\" fill=\"#00205B\"/></svg> Joke</button>
       </div>
     </div>
     </div>
@@ -1653,16 +1653,13 @@ selectViewer = function(key) {
   document.getElementById('jokeInlineBtn').style.display = '';
 };
 
-triviaBtn.addEventListener('click', () => {
+document.getElementById('triviaInlineBtn').addEventListener('click', () => {
   startTrivia();
   triviaPanel.classList.add('open');
-  triviaBtn.classList.add('hidden');
 });
 
 triviaClose.addEventListener('click', () => {
   triviaPanel.classList.remove('open');
-  document.getElementById('triviaInlineBtn').style.display = '';
-  document.getElementById('jokeInlineBtn').style.display = '';
 });
 
 triviaNext.addEventListener('click', () => {
@@ -2084,7 +2081,8 @@ function tellNorwegianJoke() {
   
   const emoji = document.createElement('div');
   emoji.style.cssText = 'font-size:40px;margin-bottom:16px;';
-  emoji.innerHTML = '&#x1F1F3;&#x1F1F4;';
+  emoji.innerHTML = '<svg viewBox=\"0 0 22 16\" width=\"22\" height=\"16\" style=\"vertical-align:middle;\"><rect width=\"22\" height=\"16\" fill=\"#BA0C2F\"/><rect x=\"6\" width=\"4\" height=\"16\" fill=\"#fff\"/><rect y=\"6\" width=\"22\" height=\"4\" fill=\"#fff\"/><rect x=\"7\" width=\"2\" height=\"16\" fill=\"#00205B\"/><rect y=\"7\" width=\"22\" height=\"2\" fill=\"#00205B\"/></svg>';
+  emoji.style.cssText = 'margin-bottom:16px;';
   
   const setup = document.createElement('div');
   setup.style.cssText = 'font-size:17px;color:#fff;line-height:1.5;margin-bottom:20px;';
@@ -2141,7 +2139,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (trivHdr) {
     const jokeLink = document.createElement('div');
     jokeLink.style.cssText = 'font-size:14px;color:#ffb74d;cursor:pointer;margin-top:4px;';
-    jokeLink.innerHTML = '&#x1F1F3;&#x1F1F4; Tell me a Norwegian joke';
+    jokeLink.innerHTML = '<svg viewBox=\"0 0 22 16\" width=\"22\" height=\"16\" style=\"vertical-align:middle;\"><rect width=\"22\" height=\"16\" fill=\"#BA0C2F\"/><rect x=\"6\" width=\"4\" height=\"16\" fill=\"#fff\"/><rect y=\"6\" width=\"22\" height=\"4\" fill=\"#fff\"/><rect x=\"7\" width=\"2\" height=\"16\" fill=\"#00205B\"/><rect y=\"7\" width=\"22\" height=\"2\" fill=\"#00205B\"/></svg> Tell me a Norwegian joke';
     jokeLink.addEventListener('click', tellNorwegianJoke);
     trivHdr.appendChild(jokeLink);
   }
