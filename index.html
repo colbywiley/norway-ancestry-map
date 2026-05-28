@@ -1153,14 +1153,26 @@ body.trip-mode .trip-sheet { display: flex; }
 .trip-post-photos.n1 { grid-template-columns: 1fr; }
 .trip-post-photos.n2 { grid-template-columns: 1fr 1fr; }
 .trip-post-photos.n3, .trip-post-photos.n4 { grid-template-columns: 1fr 1fr; }
-.trip-post-photos img {
+.trip-post-photos img, .trip-post-photos video {
   width: 100%; height: 100%; object-fit: cover;
   aspect-ratio: 4/3; cursor: pointer; display: block;
   background: rgba(0,0,0,0.3);
 }
 .trip-post-photos.n1 { background: rgba(0,0,0,0.35); }
-.trip-post-photos.n1 img { aspect-ratio: auto; height: auto; max-height: 62vh; object-fit: contain; }
-.trip-post-photos.n3 img:first-child { grid-row: span 2; aspect-ratio: auto; }
+.trip-post-photos.n1 img, .trip-post-photos.n1 video { aspect-ratio: auto; height: auto; max-height: 62vh; object-fit: contain; }
+.trip-post-photos.n3 img:first-child, .trip-post-photos.n3 video:first-child { grid-row: span 2; aspect-ratio: auto; }
+.trip-post-photos .vid-badge {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 19px; pointer-events: none;
+}
+.composer-thumb video { width: 100%; height: 100%; object-fit: cover; }
+.composer-thumb .thumb-vid {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.7); pointer-events: none;
+}
+.lightbox video { max-width: 96vw; max-height: 88dvh; border-radius: 6px; background: #000; }
 
 .trip-post-foot { display: flex; align-items: center; gap: 14px; margin-top: 11px; }
 .post-del {
@@ -1502,8 +1514,8 @@ body.is-admin .post-del { display: inline-flex; }
     <div class="modal-head"><span>New update</span><button class="modal-close" id="composerClose" type="button">✕</button></div>
     <textarea id="composerText" placeholder="What's happening? Share a moment from the trip…"></textarea>
     <div class="composer-photos" id="composerPhotos"></div>
-    <label class="composer-addphoto">📷 Add photos
-      <input type="file" id="composerFiles" accept="image/*" multiple hidden>
+    <label class="composer-addphoto">📷 Add photos or video
+      <input type="file" id="composerFiles" accept="image/*,video/*" multiple hidden>
     </label>
     <div class="composer-place">📍 <input type="text" id="composerPlace" placeholder="Locating…"></div>
     <div class="composer-ancestry" id="composerAncestry" style="display:none;"></div>
@@ -1525,6 +1537,7 @@ body.is-admin .post-del { display: inline-flex; }
   <button class="lightbox-close" id="lightboxClose" type="button">✕</button>
   <button class="lightbox-nav prev" id="lightboxPrev" type="button">‹</button>
   <img id="lightboxImg" alt="Trip photo">
+  <video id="lightboxVideo" controls playsinline style="display:none"></video>
   <button class="lightbox-nav next" id="lightboxNext" type="button">›</button>
 </div>
 
@@ -3210,13 +3223,20 @@ function generateStandardQuestions() {
   });
 
   /* ---------------- posts feed (viewer side) ---------------- */
-  function photoGridHtml(photos) {
-    if (!photos || !photos.length) return "";
-    const n = Math.min(photos.length, 4);
+  function mediaOf(p) {
+    if (Array.isArray(p.media) && p.media.length) return p.media;
+    return (p.photos || []).map(u => ({ type: "image", url: u }));
+  }
+  function photoGridHtml(media) {
+    if (!media || !media.length) return "";
+    const n = Math.min(media.length, 4);
     let html = '<div class="trip-post-photos n' + n + '">';
-    photos.slice(0, 4).forEach((url, i) => {
-      const more = (i === 3 && photos.length > 4) ? '<div class="up">+' + (photos.length - 4) + "</div>" : "";
-      html += '<div style="position:relative;"><img loading="lazy" src="' + esc(url) + '" data-idx="' + i + '">' + more + "</div>";
+    media.slice(0, 4).forEach((m, i) => {
+      const more = (i === 3 && media.length > 4) ? '<div class="up">+' + (media.length - 4) + "</div>" : "";
+      const inner = m.type === "video"
+        ? '<video src="' + esc(m.url) + '#t=0.1" preload="metadata" muted playsinline data-idx="' + i + '"></video><div class="vid-badge" data-idx="' + i + '">▶</div>'
+        : '<img loading="lazy" src="' + esc(m.url) + '" data-idx="' + i + '">';
+      html += '<div style="position:relative;" data-idx="' + i + '">' + inner + more + "</div>";
     });
     return html + "</div>";
   }
@@ -3231,7 +3251,7 @@ function generateStandardQuestions() {
         '<div class="trip-post-sub">' + sub.join("") + "</div></div></div>" +
       (p.text ? '<div class="trip-post-text">' + esc(p.text) + "</div>" : "") +
       (p.ancestry ? '<div class="trip-post-ancestry">🌳 Standing where ' + esc(p.ancestry) + "</div>" : "") +
-      photoGridHtml(p.photos) +
+      photoGridHtml(mediaOf(p)) +
       '<div class="trip-post-foot">' +
         '<button class="heart-btn' + (liked ? " liked" : "") + '" data-id="' + id + '">' +
         '<svg viewBox="0 0 24 24" fill="' + (liked ? "currentColor" : "none") + '" stroke="currentColor" stroke-width="2">' +
@@ -3297,8 +3317,8 @@ function generateStandardQuestions() {
 
   // feed interactions (delegation)
   tripFeed.addEventListener("click", (e) => {
-    const img = e.target.closest(".trip-post-photos img");
-    if (img) { const card = e.target.closest(".trip-post"); openLightbox(postsById[card.dataset.id].photos, +img.dataset.idx); return; }
+    const mediaEl = e.target.closest(".trip-post-photos [data-idx]");
+    if (mediaEl) { const card = e.target.closest(".trip-post"); openLightbox(mediaOf(postsById[card.dataset.id]), +mediaEl.dataset.idx); return; }
     const place = e.target.closest(".place");
     if (place) { map.flyTo([+place.dataset.lat, +place.dataset.lng], 13, { duration: 1.1 }); return; }
     const heart = e.target.closest(".heart-btn");
@@ -3323,22 +3343,34 @@ function generateStandardQuestions() {
   }
 
   /* ---------------- lightbox ---------------- */
-  let lbPhotos = [], lbIdx = 0;
-  function openLightbox(photos, idx) {
-    lbPhotos = photos || []; lbIdx = idx || 0;
-    lightboxImg.src = lbPhotos[lbIdx];
-    const multi = lbPhotos.length > 1;
+  const lbVideo = $("lightboxVideo");
+  let lbMedia = [], lbIdx = 0;
+  function renderLb() {
+    const m = lbMedia[lbIdx]; if (!m) return;
+    if (m.type === "video") {
+      lightboxImg.style.display = "none"; lightboxImg.removeAttribute("src");
+      lbVideo.style.display = ""; lbVideo.src = m.url; lbVideo.play().catch(() => {});
+    } else {
+      lbVideo.pause(); lbVideo.removeAttribute("src"); lbVideo.style.display = "none";
+      lightboxImg.style.display = ""; lightboxImg.src = m.url;
+    }
+  }
+  function closeLightbox() { lbVideo.pause(); lightbox.classList.remove("open"); }
+  function openLightbox(media, idx) {
+    lbMedia = media || []; lbIdx = idx || 0;
+    renderLb();
+    const multi = lbMedia.length > 1;
     lightboxPrev.style.display = lightboxNext.style.display = multi ? "" : "none";
     lightbox.classList.add("open");
   }
-  function lbStep(d) { lbIdx = (lbIdx + d + lbPhotos.length) % lbPhotos.length; lightboxImg.src = lbPhotos[lbIdx]; }
-  lightboxClose.addEventListener("click", () => lightbox.classList.remove("open"));
-  lightbox.addEventListener("click", (e) => { if (e.target === lightbox) lightbox.classList.remove("open"); });
+  function lbStep(d) { lbVideo.pause(); lbIdx = (lbIdx + d + lbMedia.length) % lbMedia.length; renderLb(); }
+  lightboxClose.addEventListener("click", closeLightbox);
+  lightbox.addEventListener("click", (e) => { if (e.target === lightbox) closeLightbox(); });
   lightboxPrev.addEventListener("click", () => lbStep(-1));
   lightboxNext.addEventListener("click", () => lbStep(1));
   document.addEventListener("keydown", (e) => {
     if (!lightbox.classList.contains("open")) return;
-    if (e.key === "Escape") lightbox.classList.remove("open");
+    if (e.key === "Escape") closeLightbox();
     if (e.key === "ArrowLeft") lbStep(-1);
     if (e.key === "ArrowRight") lbStep(1);
   });
@@ -3469,11 +3501,17 @@ function generateStandardQuestions() {
       $("composerPlace").placeholder = "Add a place";
     }
   }
+  const MAX_VIDEO_MB = 100;
   function addFiles(fileList) {
     Array.from(fileList).slice(0, 8).forEach(file => {
-      if (!file.type.startsWith("image/")) return;
-      const item = { file, url: URL.createObjectURL(file), status: "" };
-      pending.push(item);
+      const isVideo = file.type.startsWith("video/");
+      const isImage = file.type.startsWith("image/");
+      if (!isImage && !isVideo) return;
+      if (isVideo && file.size > MAX_VIDEO_MB * 1048576) {
+        toast("That video is " + Math.round(file.size / 1048576) + " MB — please use a clip under " + MAX_VIDEO_MB + " MB (about a minute).");
+        return;
+      }
+      pending.push({ file, url: URL.createObjectURL(file), status: "", type: isVideo ? "video" : "image" });
     });
     renderPendingThumbs();
   }
@@ -3483,8 +3521,10 @@ function generateStandardQuestions() {
     pending.forEach((it, i) => {
       const d = document.createElement("div");
       d.className = "composer-thumb";
-      d.innerHTML = '<img src="' + it.url + '">' +
-        (it.status ? '<div class="up">' + it.status + "</div>" : '<button class="rm" data-i="' + i + '">✕</button>');
+      const preview = it.type === "video"
+        ? '<video src="' + it.url + '" muted playsinline></video><div class="thumb-vid">▶</div>'
+        : '<img src="' + it.url + '">';
+      d.innerHTML = preview + (it.status ? '<div class="up">' + it.status + "</div>" : '<button class="rm" data-i="' + i + '">✕</button>');
       wrap.appendChild(d);
     });
     wrap.querySelectorAll(".rm").forEach(b => b.addEventListener("click", () => { pending.splice(+b.dataset.i, 1); renderPendingThumbs(); }));
@@ -3511,18 +3551,27 @@ function generateStandardQuestions() {
     const postBtn = $("composerPost"); postBtn.disabled = true; postBtn.textContent = "Posting…";
     try {
       const ref = db.collection("posts").doc();
-      const urls = [];
+      const media = [];
       for (let i = 0; i < pending.length; i++) {
-        pending[i].status = "↑ " + Math.round((i) / pending.length * 100) + "%"; renderPendingThumbs();
-        const blob = await compressImage(pending[i].file, 1600, 0.82);
-        const snap = await storage.ref("posts/" + ref.id + "/" + Date.now() + "_" + i + ".jpg").put(blob, { contentType: "image/jpeg" });
-        urls.push(await snap.ref.getDownloadURL());
-        pending[i].status = "✓"; renderPendingThumbs();
+        const it = pending[i];
+        it.status = "↑"; renderPendingThumbs();
+        let blob, ext, ctype;
+        if (it.type === "video") {
+          blob = it.file;
+          ext = ((it.file.name.match(/\.(\w+)$/) || [, "mp4"])[1] || "mp4").toLowerCase();
+          ctype = it.file.type || "video/mp4";
+        } else {
+          blob = await compressImage(it.file, 1600, 0.82);
+          ext = "jpg"; ctype = "image/jpeg";
+        }
+        const snap = await storage.ref("posts/" + ref.id + "/" + Date.now() + "_" + i + "." + ext).put(blob, { contentType: ctype });
+        media.push({ type: it.type, url: await snap.ref.getDownloadURL() });
+        it.status = "✓"; renderPendingThumbs();
       }
       const useAncestry = composerAncestryHit && (!$("ancestryChk") || $("ancestryChk").checked);
       const data = {
         text: text,
-        photos: urls,
+        media: media,
         place: $("composerPlace").value.trim() || null,
         author: myName || "Trip",
         hearts: 0,
