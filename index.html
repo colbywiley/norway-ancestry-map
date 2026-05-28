@@ -1164,7 +1164,7 @@ body.trip-mode .trip-sheet { display: flex; }
 }
 .post-del:hover { color: var(--live); background: rgba(255,59,92,0.12); }
 .post-del svg { width: 16px; height: 16px; }
-body.is-owner .post-del { display: inline-flex; }
+body.is-admin .post-del { display: inline-flex; }
 .heart-btn {
   border: none; background: transparent; cursor: pointer;
   display: flex; align-items: center; gap: 6px;
@@ -1483,7 +1483,7 @@ body.is-owner .post-del { display: inline-flex; }
   </div>
   <div class="trip-feed" id="tripFeed"></div>
   <div class="trip-empty" id="tripEmpty" style="display:none;"></div>
-  <button class="owner-link" id="ownerLink" type="button">Trip owner? Sign in to post</button>
+  <button class="owner-link" id="ownerLink" type="button">Trip member? Sign in to post</button>
 </div>
 
 <div class="owner-fabs" id="ownerFabs" style="display:none;">
@@ -1506,12 +1506,11 @@ body.is-owner .post-del { display: inline-flex; }
 
 <div class="modal-overlay" id="signinOverlay">
   <div class="modal signin">
-    <div class="modal-head"><span>Owner sign in</span><button class="modal-close" id="signinClose" type="button">✕</button></div>
-    <p class="signin-hint">Only the trip owner can post updates. Visitors see everything without signing in.</p>
-    <input type="email" id="signinEmail" placeholder="Email" autocomplete="username">
-    <input type="password" id="signinPass" placeholder="Password" autocomplete="current-password">
+    <div class="modal-head"><span>Sign in to post</span><button class="modal-close" id="signinClose" type="button">✕</button></div>
+    <p class="signin-hint">Trip members can post updates &amp; share live location. Enter your email and we'll send a one-tap sign-in link — no password needed. Everyone else can view &amp; react without signing in.</p>
+    <input type="email" id="signinEmail" placeholder="you@example.com" autocomplete="email" inputmode="email">
     <div class="signin-error" id="signinError"></div>
-    <button class="signin-btn" id="signinBtn" type="button">Sign in</button>
+    <button class="signin-btn" id="signinBtn" type="button">Email me a sign-in link</button>
   </div>
 </div>
 
@@ -1580,6 +1579,7 @@ const TRIP_MEMBERS = {
   audrey: { name: 'Audrey', full: 'Audrey Saylor', families: ['Seltveit','Anderson'], color: '#81c784', initials: 'AS' },
   marlowe: { name: 'Marlowe', full: 'Marlowe Kittelson', families: ['Kittelson','Slinde'], color: '#ffb74d', initials: 'MK' },
   gayla: { name: 'Gayla', full: 'Gayla Kittelson', families: ['Tudahl'], color: '#ff8a65', initials: 'GK' },
+  teri: { name: 'Teri', full: 'Teri Nitschke', families: ['Tudahl'], color: '#4db6ac', initials: 'TN' },
   valerie: { name: 'Valerie', full: 'Valerie Wiley', families: ['Seltveit','Anderson','Kittelson','Slinde'], color: '#ce93d8', initials: 'VW' },
   colby: { name: 'Colby', full: 'Colby Wiley', families: ['Seltveit','Anderson','Kittelson','Slinde'], color: '#e06090', initials: 'CW' },
 };
@@ -2933,11 +2933,13 @@ function generateStandardQuestions() {
        2. Add a Web App; copy its config into FIREBASE_CONFIG below.
        3. Build > Firestore Database  -> Create database (production mode).
        4. Build > Storage             -> Get started.
-       5. Build > Authentication      -> enable "Email/Password",
-          then add ONE user (your email + a password) under the Users tab.
+       5. Build > Authentication -> Sign-in method -> enable "Email/Password"
+          AND tick "Email link (passwordless sign-in)". No users to add by
+          hand — they're created automatically the first time someone signs in.
        6. Paste the security rules from the project chat into:
             Firestore -> Rules   and   Storage -> Rules
-       7. Put your email in OWNER_EMAILS below.
+       7. Posters are listed in POSTERS below (email -> name); admins in
+          ADMIN_EMAILS. Add the same emails to the security rules.
      Until configured, the Live Trip tab shows a friendly "coming soon"
      state and the ancestry map keeps working normally.
      ============================================================ -->
@@ -2954,7 +2956,21 @@ function generateStandardQuestions() {
     messagingSenderId: "472256428725",
     appId: "1:472256428725:web:8c98f1c1236411b1c09cfc"
   };
-  const OWNER_EMAILS = ["colbywiley@gmail.com"];
+  // Who can post (email -> display name shown on their posts).
+  // Sign-in is by one-tap email link, so only people who can open these
+  // inboxes can post — no passwords to hand out.
+  const POSTERS = {
+    "colbywiley@gmail.com": "Colby",
+    "valwiley@gmail.com": "Valerie",
+    "carl.t.wiley@gmail.com": "Carl",
+    "kitkat@srt.com": "Marlowe",
+    "gkittels34@gmail.com": "Gayla",
+    "amsayler@bis.midco.net": "Audrey",
+    "gwirtz21@gmail.com": "Gene",
+    "nitschkemom@gmail.com": "Teri"
+  };
+  // Who can delete any post (everyone else can only post, not delete).
+  const ADMIN_EMAILS = ["colbywiley@gmail.com"];
   /* ----------------------------------------------------------------- */
 
   const CONFIGURED = !/^PASTE/.test(FIREBASE_CONFIG.apiKey || "PASTE");
@@ -2978,7 +2994,7 @@ function generateStandardQuestions() {
   const DEFAULT_SUBTITLE = subtitleBar.textContent;
 
   // Firebase handles
-  let db = null, auth = null, storage = null, isOwner = false;
+  let db = null, auth = null, storage = null, isOwner = false, isAdmin = false, myName = null;
 
   // Map layers
   const tripLayer = L.layerGroup();
@@ -3244,7 +3260,7 @@ function generateStandardQuestions() {
     if (del) { deletePost(del.dataset.id); return; }
   });
   function deletePost(id) {
-    if (!db || !isOwner) return;
+    if (!db || !isAdmin) return;
     if (!confirm("Delete this update? This can't be undone.")) return;
     db.collection("posts").doc(id).delete()
       .then(() => toast("Update deleted."))
@@ -3286,21 +3302,49 @@ function generateStandardQuestions() {
     $("signinOverlay").classList.add("open");
   });
   $("signinClose").addEventListener("click", () => $("signinOverlay").classList.remove("open"));
-  $("signinBtn").addEventListener("click", () => {
-    const err = $("signinError"); err.textContent = "";
+  $("signinBtn").addEventListener("click", sendSignInLink);
+  $("signinEmail").addEventListener("keydown", (e) => { if (e.key === "Enter") sendSignInLink(); });
+
+  function sendSignInLink() {
+    const err = $("signinError"); err.style.color = ""; err.textContent = "";
     if (!auth) { err.textContent = "Trip backend isn't connected yet."; return; }
-    const btn = $("signinBtn"); btn.disabled = true;
-    auth.signInWithEmailAndPassword($("signinEmail").value.trim(), $("signinPass").value)
-      .then(() => { $("signinOverlay").classList.remove("open"); $("signinPass").value = ""; })
-      .catch(e => { err.textContent = e.code === "auth/invalid-credential" ? "Wrong email or password." : (e.message || "Sign in failed."); })
-      .finally(() => { btn.disabled = false; });
-  });
-  function setOwnerUI(on) {
-    isOwner = on;
-    ownerFabs.style.display = on ? "flex" : "none";
-    ownerBar.style.display = on ? "block" : "none";
-    document.body.classList.toggle("is-owner", on);
-    ownerLink.textContent = on ? "Signed in — sign out" : "Trip owner? Sign in to post";
+    const email = $("signinEmail").value.trim().toLowerCase();
+    if (!email) { err.textContent = "Enter your email."; return; }
+    if (!POSTERS[email]) { err.textContent = "That email isn't on the trip's posting list — but you can still view & react without signing in."; return; }
+    const btn = $("signinBtn"); btn.disabled = true; btn.textContent = "Sending…";
+    const acs = { url: location.origin + location.pathname, handleCodeInApp: true };
+    auth.sendSignInLinkToEmail(email, acs)
+      .then(() => {
+        localStorage.setItem("emailForSignIn", email);
+        err.style.color = "var(--anderson)";
+        err.innerHTML = "✓ Check your inbox — tap the link we sent to <strong>" + esc(email) + "</strong> to finish. Open it on this device if you can.";
+        $("signinEmail").style.display = "none"; btn.style.display = "none";
+      })
+      .catch((e) => { err.textContent = e.message || "Couldn't send the link. Try again."; btn.disabled = false; btn.textContent = "Email me a sign-in link"; });
+  }
+
+  function completeEmailLinkSignIn() {
+    if (!auth || !auth.isSignInWithEmailLink(location.href)) return;
+    let email = localStorage.getItem("emailForSignIn");
+    if (!email) email = window.prompt("Please confirm your email to finish signing in:");
+    if (!email) return;
+    auth.signInWithEmailLink(email.trim().toLowerCase(), location.href)
+      .then(() => {
+        localStorage.removeItem("emailForSignIn");
+        history.replaceState(null, "", location.pathname + location.hash);
+        $("signinOverlay").classList.remove("open");
+        toast("You're signed in!");
+        setMode("trip");
+      })
+      .catch(() => { toast("That sign-in link is invalid or expired — please request a new one."); });
+  }
+
+  function setOwnerUI(poster, admin) {
+    isOwner = poster; isAdmin = !!admin;
+    ownerFabs.style.display = poster ? "flex" : "none";
+    ownerBar.style.display = poster ? "block" : "none";
+    document.body.classList.toggle("is-admin", isAdmin);
+    ownerLink.textContent = poster ? ("Signed in as " + (myName || "member") + " — sign out") : "Trip member? Sign in to post";
   }
 
   /* ---------------- owner: share live location ---------------- */
@@ -3333,7 +3377,7 @@ function generateStandardQuestions() {
     if (now - lastWrite.t < 15000 && moved < 30) return;
     lastWrite = { t: now, lat, lng };
     const payload = { lat, lng, accuracy: Math.round(accuracy || 0), sharing: true,
-      author: (auth.currentUser && auth.currentUser.displayName) || "Colby",
+      author: myName || "Trip",
       updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
     if (now - lastPlace.t > 120000) {
       lastPlace.t = now;
@@ -3433,7 +3477,7 @@ function generateStandardQuestions() {
         text: text,
         photos: urls,
         place: $("composerPlace").value.trim() || null,
-        author: auth.currentUser.displayName || "Colby",
+        author: myName || "Trip",
         hearts: 0,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
@@ -3460,10 +3504,17 @@ function generateStandardQuestions() {
     } catch (e) { console.warn("Firebase init failed", e); renderLive(); refreshEmptyState(); return; }
 
     auth.onAuthStateChanged(u => {
-      const owner = !!(u && u.email && OWNER_EMAILS.indexOf(u.email.toLowerCase()) !== -1);
-      setOwnerUI(owner);
-      if (u && !owner) { auth.signOut(); }
+      const email = u && u.email ? u.email.toLowerCase() : null;
+      const inList = !!(email && POSTERS[email]);
+      const poster = inList && !!u.emailVerified;
+      myName = inList ? POSTERS[email] : null;
+      setOwnerUI(poster, poster && ADMIN_EMAILS.indexOf(email) !== -1);
+      if (u && !poster) {
+        auth.signOut();
+        toast(inList ? "Almost there — open the email sign-in link to verify it's you." : "That email isn't on the trip's posting list.");
+      }
     });
+    completeEmailLinkSignIn();
 
     db.collection("trip").doc("live").onSnapshot(doc => {
       liveData = doc.exists ? doc.data() : null;
