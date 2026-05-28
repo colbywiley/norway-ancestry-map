@@ -1005,6 +1005,7 @@ body.trip-mode .layers-panel { display: none; }
   animation: liveRing 2s ease-out infinite;
   z-index: 1;
 }
+.live-marker.idle .lm-avatar { background: #7a8699; }
 @keyframes liveRing {
   0% { transform: scale(0.6); opacity: 0.7; }
   100% { transform: scale(1.8); opacity: 0; }
@@ -1059,6 +1060,7 @@ body.trip-mode .trip-sheet { display: flex; }
   display: flex; align-items: center; gap: 8px;
   padding: 4px 18px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.07);
+  align-self: center; width: 100%; max-width: 632px;
 }
 .trip-status-dot {
   width: 9px; height: 9px; border-radius: 50%; flex: none;
@@ -1102,7 +1104,8 @@ body.trip-mode .trip-sheet { display: flex; }
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 16px;
   padding: 14px 15px;
-  margin-bottom: 12px;
+  margin: 0 auto 12px;
+  max-width: 620px;
   animation: postIn 0.45s cubic-bezier(0.22,1,0.36,1);
 }
 .trip-post.is-new { box-shadow: 0 0 0 1.5px var(--live); }
@@ -1149,10 +1152,19 @@ body.trip-mode .trip-sheet { display: flex; }
   aspect-ratio: 4/3; cursor: pointer; display: block;
   background: rgba(0,0,0,0.3);
 }
-.trip-post-photos.n1 img { aspect-ratio: 3/2; max-height: 340px; }
+.trip-post-photos.n1 { background: rgba(0,0,0,0.35); }
+.trip-post-photos.n1 img { aspect-ratio: auto; height: auto; max-height: 62vh; object-fit: contain; }
 .trip-post-photos.n3 img:first-child { grid-row: span 2; aspect-ratio: auto; }
 
 .trip-post-foot { display: flex; align-items: center; gap: 14px; margin-top: 11px; }
+.post-del {
+  display: none; margin-left: auto; align-items: center;
+  border: none; background: transparent; cursor: pointer;
+  color: var(--text-dim); padding: 5px 7px; border-radius: 8px; transition: color 0.15s, background 0.15s;
+}
+.post-del:hover { color: var(--live); background: rgba(255,59,92,0.12); }
+.post-del svg { width: 16px; height: 16px; }
+body.is-owner .post-del { display: inline-flex; }
 .heart-btn {
   border: none; background: transparent; cursor: pointer;
   display: flex; align-items: center; gap: 6px;
@@ -1187,7 +1199,7 @@ body.trip-mode .trip-sheet { display: flex; }
   line-height: 1;
 }
 /* Owner: share-location toggle row inside the sheet */
-.owner-bar { flex: none; padding: 10px 14px 4px; }
+.owner-bar { flex: none; padding: 10px 14px 4px; align-self: center; width: 100%; max-width: 632px; }
 .owner-share {
   width: 100%; display: flex; align-items: center; gap: 11px;
   padding: 10px 13px; border-radius: 13px; cursor: pointer; text-align: left;
@@ -2970,7 +2982,7 @@ function generateStandardQuestions() {
 
   // Map layers
   const tripLayer = L.layerGroup();
-  let liveMarker = null, trailLine = null;
+  let liveMarker = null, trailLine = null, liveMode = null;
   const postMarkers = {};
 
   // State
@@ -3071,7 +3083,7 @@ function generateStandardQuestions() {
   function fitTripOnce() {
     if (didFitTrip) return;
     const pts = [];
-    if (liveData && liveData.sharing && typeof liveData.lat === "number") pts.push([liveData.lat, liveData.lng]);
+    if (liveData && typeof liveData.lat === "number") pts.push([liveData.lat, liveData.lng]);
     Object.values(postsById).forEach(p => { if (typeof p.lat === "number") pts.push([p.lat, p.lng]); });
     if (pts.length === 0) ACCOMMODATIONS.forEach(a => pts.push([a.lat, a.lng]));
     if (pts.length === 1) { map.flyTo(pts[0], 11, { duration: 1 }); didFitTrip = true; }
@@ -3087,25 +3099,37 @@ function generateStandardQuestions() {
   tripHandle.addEventListener("click", () => tripSheet.classList.toggle("expanded"));
 
   /* ---------------- live location (viewer side) ---------------- */
+  function makeLiveIcon(idle) {
+    return L.divIcon({
+      className: "live-marker-wrap",
+      html: '<div class="live-marker' + (idle ? " idle" : "") + '">' +
+            (idle ? "" : '<div class="lm-ring"></div>') + '<div class="lm-avatar">📍</div></div>',
+      iconSize: [40, 40], iconAnchor: [20, 20]
+    });
+  }
   function renderLive() {
-    const sharing = liveData && liveData.sharing && typeof liveData.lat === "number";
-    if (sharing) {
-      statusDot.classList.remove("off");
-      const place = liveData.place ? "<strong>" + esc(liveData.place) + "</strong>" : "<strong>Live now</strong>";
-      statusText.innerHTML = "We're at " + place + ' <span class="ago">· ' + timeAgo(toMillis(liveData.updatedAt)) + "</span>";
-      flyLiveBtn.style.display = "";
+    const hasLoc = liveData && typeof liveData.lat === "number";
+    const live = hasLoc && !!liveData.sharing;
+    if (hasLoc) {
       const ll = [liveData.lat, liveData.lng];
+      const mode = live ? "live" : "idle";
       if (!liveMarker) {
-        liveMarker = L.marker(ll, {
-          zIndexOffset: 2000,
-          icon: L.divIcon({
-            className: "live-marker-wrap",
-            html: '<div class="live-marker"><div class="lm-ring"></div><div class="lm-avatar">📍</div></div>',
-            iconSize: [40, 40], iconAnchor: [20, 20]
-          })
-        }).addTo(tripLayer);
+        liveMarker = L.marker(ll, { zIndexOffset: 2000, icon: makeLiveIcon(!live) }).addTo(tripLayer);
+        liveMode = mode;
       } else {
         liveMarker.setLatLng(ll);
+        if (liveMode !== mode) { liveMarker.setIcon(makeLiveIcon(!live)); liveMode = mode; }
+      }
+      flyLiveBtn.style.display = "";
+      const ago = timeAgo(toMillis(liveData.updatedAt));
+      if (live) {
+        statusDot.classList.remove("off");
+        const where = liveData.place ? "We're at <strong>" + esc(liveData.place) + "</strong>" : "<strong>Live now</strong>";
+        statusText.innerHTML = where + ' <span class="ago">· ' + ago + "</span>";
+      } else {
+        statusDot.classList.add("off");
+        const where = liveData.place ? "Last seen at <strong>" + esc(liveData.place) + "</strong>" : "<strong>Last known location</strong>";
+        statusText.innerHTML = where + ' <span class="ago">· ' + ago + "</span>";
       }
     } else {
       statusDot.classList.add("off");
@@ -3113,10 +3137,10 @@ function generateStandardQuestions() {
         ? 'Location sharing is <strong>off</strong> right now'
         : "Live trip coming soon — see you May 29!";
       flyLiveBtn.style.display = "none";
-      if (liveMarker) { tripLayer.removeLayer(liveMarker); liveMarker = null; }
+      if (liveMarker) { tripLayer.removeLayer(liveMarker); liveMarker = null; liveMode = null; }
     }
   }
-  setInterval(() => { if (liveData && liveData.sharing) renderLive(); }, 30000);
+  setInterval(() => { if (liveData && typeof liveData.lat === "number") renderLive(); }, 30000);
 
   flyLiveBtn.addEventListener("click", () => {
     if (liveData && typeof liveData.lat === "number") map.flyTo([liveData.lat, liveData.lng], 13, { duration: 1.2 });
@@ -3149,7 +3173,10 @@ function generateStandardQuestions() {
         '<button class="heart-btn' + (liked ? " liked" : "") + '" data-id="' + id + '">' +
         '<svg viewBox="0 0 24 24" fill="' + (liked ? "currentColor" : "none") + '" stroke="currentColor" stroke-width="2">' +
         '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>' +
-        '<span class="hc">' + (p.hearts || 0) + "</span></button></div>";
+        '<span class="hc">' + (p.hearts || 0) + "</span></button>" +
+        '<button class="post-del" data-id="' + id + '" title="Delete this update" aria-label="Delete">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>' +
+        "</button></div>";
   }
   function upsertCard(id, p, isNew) {
     let el = cards[id];
@@ -3213,7 +3240,16 @@ function generateStandardQuestions() {
     if (place) { map.flyTo([+place.dataset.lat, +place.dataset.lng], 13, { duration: 1.1 }); return; }
     const heart = e.target.closest(".heart-btn");
     if (heart) { likePost(heart.dataset.id, heart); return; }
+    const del = e.target.closest(".post-del");
+    if (del) { deletePost(del.dataset.id); return; }
   });
+  function deletePost(id) {
+    if (!db || !isOwner) return;
+    if (!confirm("Delete this update? This can't be undone.")) return;
+    db.collection("posts").doc(id).delete()
+      .then(() => toast("Update deleted."))
+      .catch((e) => toast("Couldn't delete: " + (e.message || e.code || "error")));
+  }
   function likePost(id, btn) {
     if (localStorage.getItem("liked_" + id) === "1") { btn.classList.add("liked"); return; }
     localStorage.setItem("liked_" + id, "1");
@@ -3263,6 +3299,7 @@ function generateStandardQuestions() {
     isOwner = on;
     ownerFabs.style.display = on ? "flex" : "none";
     ownerBar.style.display = on ? "block" : "none";
+    document.body.classList.toggle("is-owner", on);
     ownerLink.textContent = on ? "Signed in — sign out" : "Trip owner? Sign in to post";
   }
 
@@ -3286,7 +3323,7 @@ function generateStandardQuestions() {
     shareLocBtn.classList.remove("active");
     shareLocLabel.textContent = "Share my live location";
     shareLocSub.textContent = "Off — visitors can't see where you are";
-    if (db) db.collection("trip").doc("live").set({ sharing: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    if (db) db.collection("trip").doc("live").set({ sharing: false }, { merge: true });
     toast("Live location sharing stopped.");
   }
   async function onPos(pos) {
