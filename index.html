@@ -2346,8 +2346,9 @@ function getViewerAncestors() {
 }
 
 function getLifespan(personName) {
-  const clean = personName.replace(/ \*$/, '').replace(/^! /, '');
-  const events = ALL_EVENTS.filter(e => e.person.replace(/ \*$/, '').replace(/^! /, '') === clean);
+  const norm = n => n.replace(/^!\s*/, '').replace(/\s*\*+\s*$/, '').replace(/\s+/g, ' ').trim();
+  const clean = norm(personName);
+  const events = ALL_EVENTS.filter(e => norm(e.person) === clean);
   let birth = null, death = null;
   for (const e of events) {
     if (e.eventType === 'Birth') birth = extractYear(e.date) || birth;
